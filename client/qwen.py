@@ -3,6 +3,8 @@ from pathlib import Path
 import json
 from openai import OpenAI
 
+MODEL = "qwen3-coder-plus"
+
 
 class QwenClient:
     def __init__(self) -> None:
@@ -25,9 +27,11 @@ class QwenClient:
 
     def _initialize_client(self) -> OpenAI:
         """Initialize OpenAI client with Qwen credentials"""
-        api_key = self.credentials.get("access_token") or \
-                  self.credentials.get("api_key") or \
-                  self.credentials.get("token")
+        api_key = (
+            self.credentials.get("access_token")
+            or self.credentials.get("api_key")
+            or self.credentials.get("token")
+        )
 
         if not api_key:
             raise ValueError(
@@ -35,7 +39,4 @@ class QwenClient:
                 + str(list(self.credentials.keys()))
             )
 
-        return OpenAI(
-            api_key=api_key,
-            base_url="https://portal.qwen.ai/v1"
-        )
+        return OpenAI(api_key=api_key, base_url="https://portal.qwen.ai/v1")

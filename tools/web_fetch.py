@@ -7,6 +7,9 @@ from enum import Enum
 
 from openai import OpenAI
 
+import client.qwen
+from client.qwen import QwenClient
+
 
 class ApprovalMode(Enum):
     MANUAL = "manual"
@@ -235,7 +238,7 @@ I have fetched the content from {url}. Please use the following content to answe
             )
 
             response = self.openai_client.chat.completions.create(
-                model="gpt-4",  # or "gpt-3.5-turbo" for faster/cheaper
+                model=client.qwen.MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -381,22 +384,20 @@ class BSENewsAgent:
 
 # Example usage
 if __name__ == "__main__":
-    # Initialize with your OpenAI client
-    # from openai import OpenAI
-    # client = OpenAI(api_key="your-api-key")
+    qwen = QwenClient().client
 
-    # # Method 1: Use WebFetch tool directly
-    # web_fetch = WebFetchTool(client)
+    # Method 1: Use WebFetch tool directly
+    # web_fetch = WebFetchTool(qwen)
     # params = WebFetchToolParams(
     #     url="https://news.google.com/search?q=Reliance+Industries+BSE",
-    #     prompt="Summarize the latest news about this company's stock performance"
+    #     prompt="Summarize the latest news about this company's stock performance",
     # )
     # result = web_fetch.execute(params)
     # print(result.llm_content)
 
-    # # Method 2: Use BSE News Agent
-    # agent = BSENewsAgent(client, ApprovalMode.AUTO_EDIT)
-    # analysis = agent.analyze_company_news("Tata Consultancy Services")
-    # print(f"Analysis: {analysis['analysis']}")
+    # Method 2: Use BSE News Agent
+    agent = BSENewsAgent(qwen, ApprovalMode.AUTO_EDIT)
+    analysis = agent.analyze_company_news("Tata Consultancy Services")
+    print(f"Analysis: {analysis['analysis']}")
 
     pass
