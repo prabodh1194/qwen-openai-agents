@@ -8,7 +8,6 @@ from enum import Enum
 from openai import OpenAI
 
 import client.qwen
-from client.qwen import QwenClient
 
 
 class ApprovalMode(Enum):
@@ -337,15 +336,12 @@ class BSENewsAgent:
         self.web_fetch_tool.approval_mode = approval_mode
         self.openai_client = openai_client
 
-    def analyze_company_news(
-        self, company_name: str, max_articles: int = 5
-    ) -> dict[str, Any]:
+    def analyze_company_news(self, company_name: str) -> dict[str, Any]:
         """
         Analyze company news using WebFetch approach
 
         Args:
             company_name: Name of the BSE-traded company
-            max_articles: Maximum number of articles to analyze
 
         Returns:
             Analysis results
@@ -380,24 +376,3 @@ class BSENewsAgent:
             "status": "success" if "Error:" not in result.llm_content else "error",
             "display_message": result.return_display,
         }
-
-
-# Example usage
-if __name__ == "__main__":
-    qwen = QwenClient().client
-
-    # Method 1: Use WebFetch tool directly
-    # web_fetch = WebFetchTool(qwen)
-    # params = WebFetchToolParams(
-    #     url="https://news.google.com/search?q=Reliance+Industries+BSE",
-    #     prompt="Summarize the latest news about this company's stock performance",
-    # )
-    # result = web_fetch.execute(params)
-    # print(result.llm_content)
-
-    # Method 2: Use BSE News Agent
-    agent = BSENewsAgent(qwen, ApprovalMode.AUTO_EDIT)
-    analysis = agent.analyze_company_news("Tata Consultancy Services")
-    print(f"Analysis: {analysis['analysis']}")
-
-    pass

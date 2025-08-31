@@ -1,33 +1,19 @@
-# main.py
 #!/usr/bin/env python3
 """
-Script to initialize and test Qwen client
+Main entry point for BSE News Scraper CLI
 """
-from openai import OpenAI
+import click
 
-from client.qwen import QwenClient
+from cli.bse_news import scrape_bse_news
 
-def main() -> OpenAI:
-    # Initialize client
-    print("Initializing Qwen client...")
-    qwen = QwenClient()
-    print("✓ Client initialized")
 
-    return qwen.client
+@click.group()
+def cli() -> None:
+    """BSE News Scraper CLI"""
+    pass
 
-def test_client(oa_client: OpenAI) -> None:
-    """Test the client with a simple completion"""
-    print("\n" + "=" * 50)
-    print("Testing client with a simple completion:")
-    print("=" * 50)
 
-    response = oa_client.chat.completions.create(
-        model="qwen3-coder-plus",
-        messages=[{"role": "user", "content": "Hello, world!"}],
-        max_tokens=50,
-    )
-    print("Response:", response.choices[0].message.content)
+cli.add_command(scrape_bse_news)
 
 if __name__ == "__main__":
-    client = main()
-    test_client(client)
+    cli()
