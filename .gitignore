@@ -10,3 +10,15 @@ wheels/
 .venv
 
 .idea
+
+# Terraform files
+deployment/terraform/.terraform.lock.hcl
+deployment/terraform/terraform.tfstate
+deployment/terraform/terraform.tfstate.backup
+deployment/terraform/.terraform/
+
+# Lambda deployment package
+lambda-package.zip
+
+# Application outputs
+outputs/
