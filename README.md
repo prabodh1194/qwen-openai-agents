@@ -46,11 +46,6 @@ Example:
 python main.py scrape-bse-news "Tata Consultancy Services"
 ```
 
-You can also specify the maximum number of articles to analyze:
-```bash
-python main.py scrape-bse-news "Reliance Industries" --max-articles 10
-```
-
 ## Project Structure
 
 - `client/`: Qwen client implementation
