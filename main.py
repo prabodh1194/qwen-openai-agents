@@ -5,6 +5,7 @@ Main entry point for BSE News Scraper CLI
 import click
 
 from cli.bse_news import scrape_bse_news
+from cli.refresh_token import refresh_qwen_token
 
 
 @click.group()
@@ -14,6 +15,7 @@ def cli() -> None:
 
 
 cli.add_command(scrape_bse_news)
+cli.add_command(refresh_qwen_token)
 
 if __name__ == "__main__":
     cli()

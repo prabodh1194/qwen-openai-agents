@@ -101,24 +101,21 @@ class WebFetchTool:
         Returns:
             True if private IP, False otherwise
         """
-        try:
-            parsed = urllib.parse.urlparse(url)
-            hostname = parsed.hostname
+        parsed = urllib.parse.urlparse(url)
+        hostname = parsed.hostname
 
-            if not hostname:
-                return False
-
-            # Check for localhost variants
-            if hostname.lower() in ["localhost", "127.0.0.1", "::1"]:
-                return True
-
-            # Check for private IP ranges (basic check)
-            if hostname.startswith(("192.168.", "10.", "172.")):
-                return True
-
+        if not hostname:
             return False
-        except:
-            return False
+
+        # Check for localhost variants
+        if hostname.lower() in ["localhost", "127.0.0.1", "::1"]:
+            return True
+
+        # Check for private IP ranges (basic check)
+        if hostname.startswith(("192.168.", "10.", "172.")):
+            return True
+
+        return False
 
     def should_confirm_execute(
         self, params: WebFetchToolParams
