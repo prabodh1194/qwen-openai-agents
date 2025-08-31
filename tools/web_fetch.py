@@ -1,9 +1,12 @@
 import requests
 import html2text
 import urllib.parse
+import re
+import xml.etree.ElementTree as ET
 from typing import Any, Callable
 from dataclasses import dataclass
 from enum import Enum
+from datetime import datetime
 
 from openai import OpenAI
 
@@ -195,7 +198,7 @@ class WebFetchTool:
             print(
                 f"[WebFetchTool] Converted HTML to text ({len(text_content)} characters)"
             )
-            return text_content
+            return str(text_content)
 
         except requests.RequestException as e:
             error_msg = f"Request failed: {str(e)}"
@@ -335,41 +338,383 @@ class BSENewsAgent:
 
     def analyze_company_news(self, company_name: str) -> dict[str, Any]:
         """
-        Analyze company news using WebFetch approach
+        Analyze company news using RSS feeds and combined analysis
 
         Args:
             company_name: Name of the BSE-traded company
 
         Returns:
-            Analysis results
+            Analysis results with structured sentiment data
         """
-        # Construct Google News URL
-        query = f"{company_name} BSE stock market news"
-        encoded_query = urllib.parse.quote(query)
-        news_url = f"https://news.google.com/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN%3Aen"
+        import time
 
-        # Create analysis prompt
+        start_time = time.time()
+
+        print(f"[BSENewsAgent] Starting analysis for: {company_name}")
+
+        # Generate multiple search queries for comprehensive coverage
+        search_queries = [
+            # Company-focused financial terms
+            f'"{company_name}" earnings revenue profit loss when:7d',
+            # Market-impact events
+            f'"{company_name}" acquisition merger partnership contract deal when:7d',
+            # Financial reporting
+            f'"{company_name}" quarterly results guidance outlook forecast when:7d',
+            # Regulatory/sector news
+            f'"{company_name}" regulation policy government approval when:7d',
+        ]
+
+        print("=" * 60)
+        print("SEARCH QUERY HEADERS:")
+        for i, query in enumerate(search_queries, 1):
+            print(f"{i}. {query}")
+        print("=" * 60)
+
+        all_articles = []
+        query_results = {}
+
+        # Collect articles from all RSS feeds
+        for i, query in enumerate(search_queries, 1):
+            try:
+                print(f"[BSENewsAgent] Search {i}/{len(search_queries)}: {query}")
+
+                encoded_query = urllib.parse.quote(query)
+                rss_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-IN&gl=IN&ceid=IN:en"
+                print(f"[BSENewsAgent] RSS URL: {rss_url}")
+
+                articles = self._parse_rss_feed(rss_url, limit=10)
+                all_articles.extend(articles)
+                query_results[query] = articles
+
+                print(f"[BSENewsAgent] Found {len(articles)} articles from search {i}")
+
+            except Exception as e:
+                print(f"[BSENewsAgent] ERROR processing query '{query}': {str(e)}")
+                continue
+
+        # Deduplicate and limit articles
+        print(f"[BSENewsAgent] Total articles collected: {len(all_articles)}")
+        unique_articles = self._deduplicate_articles(all_articles)
+        print(
+            f"[BSENewsAgent] Unique articles after deduplication: {len(unique_articles)}"
+        )
+
+        # Show article sources
+        print("[BSENewsAgent] Article Sources:")
+        for query, articles in query_results.items():
+            if articles:
+                print(f"  - {query}: {len(articles)} articles")
+
+        if not unique_articles:
+            print("[BSENewsAgent] No articles found for analysis")
+            return {
+                "company": company_name,
+                "analysis_date": datetime.now().strftime("%Y-%m-%d"),
+                "search_queries_used": search_queries,
+                "articles_analyzed": 0,
+                "overall_sentiment": 0,
+                "key_positive_drivers": [],
+                "key_risk_factors": [],
+                "confidence": 0,
+                "status": "error",
+                "display_message": "No articles found for analysis",
+            }
+
+        print(f"[BSENewsAgent] Sending {len(unique_articles)} articles for analysis")
+
+        # Combine articles into single text for analysis
+        combined_articles_text = ""
+        for i, article in enumerate(unique_articles, 1):
+            combined_articles_text += f"ARTICLE {i}:\n"
+            combined_articles_text += f"Content: {article['description']}\n\n"
+            combined_articles_text += f"Date: {article['pub_date']}\n"
+
+        # Create combined analysis prompt
         analysis_prompt = f"""
-        Analyze the news content for {company_name}, a company traded on the Bombay Stock Exchange (BSE).
+You are a financial news analyst specializing in stock market impact assessment. Analyze the following news articles and provide an overall sentiment score.
 
-        Please provide:
-        1. A summary of key recent developments
-        2. Financial performance highlights or concerns
-        3. Strategic initiatives and business updates
-        4. Market sentiment and investor outlook
-        5. Any regulatory or compliance matters
+COMPANY: {company_name}
 
-        Focus on information relevant to investors and stakeholders. If there are multiple news articles visible, analyze all of them collectively.
-        """
+RECENT NEWS ARTICLES:
+{combined_articles_text}
 
-        # Use WebFetch tool to get and analyze content
-        params = WebFetchToolParams(news_url, analysis_prompt)
+TASK: Evaluate how these news might impact the company's stock price in the short to medium term (1-30 days).
+
+SCORING CRITERIA:
+- Score from -5 to +5 (integers only)
+- Consider: earnings impact, market share changes, regulatory effects, competitive position, operational efficiency, management changes, industry trends
+
+POSITIVE INDICATORS (+1 to +5):
+- Strong earnings/revenue growth
+- New contracts/partnerships
+- Product launches/innovations
+- Regulatory approvals
+- Market expansion
+- Cost reductions
+- Leadership appointments
+
+NEGATIVE INDICATORS (-1 to -5):
+- Declining profits/revenue
+- Lost contracts/clients
+- Regulatory issues/fines
+- Competitive threats
+- Operational disruptions
+- Management scandals
+- Industry headwinds
+
+NEUTRAL (0):
+- Routine announcements
+- No clear financial impact
+- Mixed positive/negative signals
+
+OUTPUT FORMAT:
+Score: [Integer from -5 to +5]
+Reasoning: [2-3 sentence explanation focusing on stock price impact]
+Key Factors: [List 2-3 most important factors]
+
+Be objective and focus on quantifiable business impact rather than general market sentiment.
+"""
+
+        # Use the first article's link as a representative URL for WebFetch
+        representative_url = (
+            unique_articles[0]["link"]
+            if unique_articles[0]["link"]
+            else "https://news.google.com"
+        )
+
+        # Use WebFetch tool for combined analysis
+        params = WebFetchToolParams(representative_url, analysis_prompt)
         result = self.web_fetch_tool.execute(params)
+
+        if "Error:" in result.llm_content:
+            return {
+                "company": company_name,
+                "analysis_date": datetime.now().strftime("%Y-%m-%d"),
+                "search_queries_used": search_queries,
+                "articles_analyzed": len(unique_articles),
+                "overall_sentiment": 0,
+                "key_positive_drivers": [],
+                "key_risk_factors": [],
+                "confidence": 0,
+                "status": "error",
+                "display_message": result.llm_content,
+            }
+
+        # Parse the combined analysis result
+        sentiment_data = self._parse_combined_analysis(
+            result.llm_content, len(unique_articles)
+        )
+
+        # Add timing information
+        end_time = time.time()
+        print(
+            f"[BSENewsAgent] Analysis completed in {end_time - start_time:.2f} seconds"
+        )
 
         return {
             "company": company_name,
-            "url": news_url,
-            "analysis": result.llm_content,
-            "status": "success" if "Error:" not in result.llm_content else "error",
-            "display_message": result.return_display,
+            "analysis_date": datetime.now().strftime("%Y-%m-%d"),
+            "search_queries_used": search_queries,
+            "articles_analyzed": len(unique_articles),
+            **sentiment_data,
+            "status": "success",
+            "display_message": f"Analyzed {len(unique_articles)} unique articles",
         }
+
+    def _process_sentiment_results(
+        self, articles: list, company_name: str
+    ) -> dict[str, Any]:
+        """Process article analyses to extract sentiment scores and key factors"""
+        scores: list[int] = []
+        key_positive_drivers: list[str] = []
+        key_risk_factors: list[str] = []
+        article_breakdown: list[dict] = []
+
+        for article in articles:
+            analysis_text = article["analysis"]
+
+            # Extract score from analysis text
+            score_match = re.search(r"Score:\s*(-?\d+)", analysis_text)
+            if score_match:
+                score = int(score_match.group(1))
+                scores.append(score)
+
+                # Extract reasoning and key factors
+                reasoning_match = re.search(
+                    r"Reasoning:\s*(.+?)(?=Key Factors:|$)", analysis_text, re.DOTALL
+                )
+                factors_match = re.search(
+                    r"Key Factors:\s*(.+?)(?=Score:|$)", analysis_text, re.DOTALL
+                )
+
+                reasoning = reasoning_match.group(1).strip() if reasoning_match else ""
+                factors = (
+                    factors_match.group(1).strip().split("\n") if factors_match else []
+                )
+
+                article_breakdown.append(
+                    {
+                        "score": score,
+                        "reasoning": reasoning,
+                        "key_factors": factors,
+                        "query": article["query"],
+                    }
+                )
+
+                # Categorize drivers based on score
+                if score > 0:
+                    key_positive_drivers.extend(factors)
+                elif score < 0:
+                    key_risk_factors.extend(factors)
+
+        # Calculate overall sentiment
+        overall_sentiment = sum(scores) / len(scores) if scores else 0
+
+        # Remove duplicates from drivers
+        key_positive_drivers = list(set(key_positive_drivers))
+        key_risk_factors = list(set(key_risk_factors))
+
+        return {
+            "overall_sentiment": round(overall_sentiment, 2),
+            "article_breakdown": article_breakdown,
+            "key_positive_drivers": key_positive_drivers,
+            "key_risk_factors": key_risk_factors,
+            "confidence": min(100, len(scores) * 10),  # 10% per article, max 100%
+        }
+
+    def _parse_combined_analysis(
+        self, analysis_text: str, article_count: int
+    ) -> dict[str, Any]:
+        """Parse combined analysis result to extract sentiment score and factors"""
+        # Extract score from analysis text
+        score_match = re.search(r"Score:\s*(-?\d+)", analysis_text)
+        score = int(score_match.group(1)) if score_match else 0
+
+        # Extract reasoning
+        reasoning_match = re.search(
+            r"Reasoning:\s*(.+?)(?=Key Factors:|$)", analysis_text, re.DOTALL
+        )
+        reasoning = reasoning_match.group(1).strip() if reasoning_match else ""
+
+        # Extract key factors
+        factors_match = re.search(
+            r"Key Factors:\s*(.+?)(?=Score:|$)", analysis_text, re.DOTALL
+        )
+        factors = factors_match.group(1).strip().split("\n") if factors_match else []
+
+        # Categorize factors based on score
+        key_positive_drivers: list[str] = []
+        key_risk_factors: list[str] = []
+
+        if score > 0:
+            key_positive_drivers = factors
+        elif score < 0:
+            key_risk_factors = factors
+
+        return {
+            "overall_sentiment": score,
+            "analysis_reasoning": reasoning,
+            "key_positive_drivers": key_positive_drivers,
+            "key_risk_factors": key_risk_factors,
+            "confidence": min(100, article_count * 10),  # 10% per article, max 100%
+        }
+
+    def _parse_rss_feed(self, rss_url: str, limit: int = 10) -> list[dict[str, str]]:
+        """Parse RSS feed and extract articles with limit"""
+        try:
+            response = requests.get(rss_url)
+            response.raise_for_status()
+
+            root = ET.fromstring(response.text)
+            articles = []
+
+            for item in root.findall(".//item")[:limit]:
+                title_elem = item.find("title")
+                link_elem = item.find("link")
+                pub_date_elem = item.find("pubDate")
+                source_elem = item.find("source")
+
+                # Create clean description using title and source
+                title = (
+                    str(title_elem.text)
+                    if title_elem is not None and title_elem.text is not None
+                    else ""
+                )
+                source = (
+                    str(source_elem.text)
+                    if source_elem is not None and source_elem.text is not None
+                    else ""
+                )
+                description = f"{title} - {source}" if source else title
+
+                article = {
+                    "title": title,
+                    "link": str(link_elem.text)
+                    if link_elem is not None and link_elem.text is not None
+                    else "",
+                    "pub_date": str(pub_date_elem.text)
+                    if pub_date_elem is not None and pub_date_elem.text is not None
+                    else "",
+                    "description": description,
+                }
+                articles.append(article)
+
+            return articles
+
+        except Exception as e:
+            print(f"Error parsing RSS feed {rss_url}: {str(e)}")
+            return []
+
+    def _deduplicate_articles(
+        self, articles: list[dict[str, str]]
+    ) -> list[dict[str, str]]:
+        """Remove duplicate articles by title and link"""
+        seen = set()
+        unique_articles = []
+
+        for article in articles:
+            # Create unique identifier from title and link
+            article_id = f"{article['title']}|{article['link']}"
+            if article_id not in seen:
+                seen.add(article_id)
+                unique_articles.append(article)
+
+        return unique_articles
+
+    def _generate_filename(self, company_name: str) -> str:
+        """Generate standardized filename from company name"""
+        # Convert to lowercase
+        filename = company_name.lower()
+        # Replace spaces and special characters with underscores
+        filename = re.sub(r"[^a-z0-9]+", "_", filename)
+        # Remove leading/trailing underscores
+        filename = filename.strip("_")
+        return f"{filename}.json"
+
+    def save_analysis_to_file(self, analysis_data: dict[str, Any]) -> str:
+        """Save analysis results to dated directory"""
+        import json
+        import os
+
+        # Create outputs directory if it doesn't exist
+        outputs_dir = "outputs"
+        if not os.path.exists(outputs_dir):
+            os.makedirs(outputs_dir)
+
+        # Create dated subdirectory
+        date_str = analysis_data.get(
+            "analysis_date", datetime.now().strftime("%Y-%m-%d")
+        )
+        dated_dir = os.path.join(outputs_dir, date_str)
+        if not os.path.exists(dated_dir):
+            os.makedirs(dated_dir)
+
+        # Generate filename
+        filename = self._generate_filename(analysis_data["company"])
+        filepath = os.path.join(dated_dir, filename)
+
+        # Write JSON data
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(analysis_data, f, indent=2, ensure_ascii=False)
+
+        return filepath
