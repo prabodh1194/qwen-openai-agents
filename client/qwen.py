@@ -30,54 +30,30 @@ class QwenClient:
     def _display_token_expiration(self) -> None:
         """Display token expiration information if available"""
         # Check for expiration timestamp in various possible fields
-        exp_key = None
-        for key in ["expires_at", "expiration", "expires_in", "expire_time"]:
-            if key in self.credentials:
-                exp_key = key
-                break
-        
-        if not exp_key:
-            print("[QwenClient] No expiration info found in credentials")
+        exp_key = "expiry_date"
+        exp_value = self.credentials[exp_key]
+        exp_time = float(exp_value)
+
+        # Convert milliseconds to seconds if needed
+        if exp_time > 1e10:
+            exp_time = exp_time / 1000
+
+        # Calculate and display time remaining
+        now = datetime.now(timezone.utc).timestamp()
+        seconds_left = exp_time - now
+
+        if seconds_left <= 0:
+            print("[QwenClient] WARNING: Token has expired!")
             return
-            
-        try:
-            exp_value = self.credentials[exp_key]
-            
-            # Parse the expiration time
-            if isinstance(exp_value, str):
-                # Try parsing as timestamp string first
-                if exp_value.isdigit():
-                    exp_time = float(exp_value)
-                else:
-                    # Try parsing as ISO format
-                    exp_time = datetime.fromisoformat(exp_value.replace("Z", "+00:00")).timestamp()
-            elif isinstance(exp_value, (int, float)):
-                exp_time = float(exp_value)
-            else:
-                print(f"[QwenClient] Unknown expiration format: {exp_value}")
-                return
-                
-            # Convert milliseconds to seconds if needed
-            if exp_time > 1e10:
-                exp_time = exp_time / 1000
-                
-            # Calculate and display time remaining
-            now = datetime.now(timezone.utc).timestamp()
-            seconds_left = exp_time - now
-            
-            if seconds_left <= 0:
-                print("[QwenClient] WARNING: Token has expired!")
-                return
-                
-            # Convert to days, hours, minutes
-            days = int(seconds_left // 86400)
-            hours = int((seconds_left % 86400) // 3600)
-            minutes = int((seconds_left % 3600) // 60)
-            
-            print(f"[QwenClient] Token expires in {days} days, {hours} hours, {minutes} minutes")
-            
-        except Exception as e:
-            print(f"[QwenClient] Could not parse expiration info: {e}")
+
+        # Convert to days, hours, minutes
+        days = int(seconds_left // 86400)
+        hours = int((seconds_left % 86400) // 3600)
+        minutes = int((seconds_left % 3600) // 60)
+
+        print(
+            f"[QwenClient] Token expires in {days} days, {hours} hours, {minutes} minutes"
+        )
 
     def _initialize_client(self) -> OpenAI:
         """Initialize OpenAI client with Qwen credentials"""
@@ -94,3 +70,19 @@ class QwenClient:
             )
 
         return OpenAI(api_key=api_key, base_url="https://portal.qwen.ai/v1")
+
+
+if __name__ == "__main__":
+    qwen_client = QwenClient()
+    response = qwen_client.client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {
+                "role": "user",
+                "content": "Hello, Qwen! Can you write a Python function to add two numbers?",
+            }
+        ],
+        max_tokens=150,
+        temperature=0.5,
+    )
+    print(response.choices[0].message.content)
