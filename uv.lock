@@ -711,6 +711,7 @@ dependencies = [
     { name = "click" },
     { name = "html2text" },
     { name = "openai" },
+    { name = "pydantic-core" },
     { name = "requests" },
     { name = "smart-open", extra = ["all"] },
 ]
@@ -729,6 +730,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.7" },
     { name = "html2text", specifier = ">=2025.4.15" },
     { name = "openai", specifier = ">=1.102.0" },
+    { name = "pydantic-core", specifier = ">=2.33.2" },
     { name = "requests", specifier = ">=2.32.5" },
     { name = "smart-open", extras = ["all"], specifier = ">=7.3.0.post1" },
 ]
