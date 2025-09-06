@@ -24,12 +24,12 @@ def refresh_qwen_token() -> None:
         # Perform token refresh
         new_credentials = qwen.refresh_token()
 
-        # Save updated credentials
-        with open(qwen.creds_path, "w") as f:
+        # Save updated credentials back to the same location
+        with open(qwen.creds_uri, "w") as f:
             json.dump(new_credentials, f, indent=2)
 
         click.echo("✓ Tokens refreshed successfully")
-        click.echo(f"Updated credentials saved to {qwen.creds_path}")
+        click.echo(f"Updated credentials saved to {qwen.creds_uri}")
 
     except Exception as e:
         click.echo(f"Error refreshing tokens: {str(e)}", err=True)

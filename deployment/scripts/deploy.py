@@ -3,7 +3,15 @@ Deploy Lambda infrastructure using Terraform.
 """
 import os
 import subprocess
+import logging
 from pathlib import Path
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 def run_terraform(command: str, terraform_dir: Path):
@@ -14,24 +22,28 @@ def run_terraform(command: str, terraform_dir: Path):
         os.chdir(terraform_dir)
 
         if command == "init":
-            result = subprocess.run(["tofu", "init"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["tofu", "init", "-input=false"], capture_output=True, text=True
+            )
         elif command == "apply":
             result = subprocess.run(
-                ["tofu", "apply", "-auto-approve"], capture_output=True, text=True
+                ["tofu", "apply", "-auto-approve", "-input=false"],
+                capture_output=True,
+                text=True,
             )
         elif command == "destroy":
             result = subprocess.run(
-                ["tofu", "destroy", "-auto-approve"],
+                ["tofu", "destroy", "-auto-approve", "-input=false"],
                 capture_output=True,
                 text=True,
             )
         else:
             raise ValueError(f"Unknown terraform command: {command}")
 
-        print(f"Terraform {command} output:")
-        print(result.stdout)
+        logger.info(f"Terraform {command} output:")
+        logger.info(result.stdout)
         if result.stderr:
-            print(f"Errors: {result.stderr}")
+            logger.error(f"Errors: {result.stderr}")
 
         return result.returncode == 0
 
@@ -44,17 +56,17 @@ def deploy_infrastructure():
 
     terraform_dir = Path(__file__).parent.parent / "terraform"
 
-    print(f"Initializing Terraform... {terraform_dir}")
+    logger.info(f"Initializing Terraform... {terraform_dir}")
     if not run_terraform("init", terraform_dir):
-        print("Terraform init failed")
+        logger.error("Terraform init failed")
         return False
 
-    print("Applying Terraform configuration...")
+    logger.info("Applying Terraform configuration...")
     if not run_terraform("apply", terraform_dir):
-        print("Terraform apply failed")
+        logger.error("Terraform apply failed")
         return False
 
-    print("Deployment completed successfully!")
+    logger.info("Deployment completed successfully!")
     return True
 
 
@@ -63,7 +75,7 @@ def destroy_infrastructure():
 
     terraform_dir = Path(__file__).parent.parent / "terraform"
 
-    print("Destroying infrastructure...")
+    logger.info("Destroying infrastructure...")
     return run_terraform("destroy", terraform_dir)
 
 

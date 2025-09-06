@@ -1,3 +1,4 @@
+
 # S3 Bucket for mountpoint
 resource "aws_s3_bucket" "data_bucket" {
   bucket = var.s3_bucket_name
@@ -75,13 +76,8 @@ resource "aws_lambda_function" "bse_news_analyzer" {
 
   environment {
     variables = {
-      HOME = "/home/sbx_user1050"
+      S3_BUCKET_NAME = var.s3_bucket_name
     }
-  }
-
-  file_system_config {
-    arn              = aws_s3_bucket.data_bucket.arn
-    local_mount_path = "/home/sbx_user1050"
   }
 
   depends_on = [
@@ -103,15 +99,8 @@ resource "aws_lambda_function" "creds_refresh" {
 
   environment {
     variables = {
-      HOME = "/home/sbx_user1050"
       S3_BUCKET_NAME = var.s3_bucket_name
-      AWS_REGION = var.aws_region
     }
-  }
-
-  file_system_config {
-    arn              = aws_s3_bucket.data_bucket.arn
-    local_mount_path = "/home/sbx_user1050"
   }
 
   depends_on = [

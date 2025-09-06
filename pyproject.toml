@@ -10,6 +10,7 @@ dependencies = [
     "html2text>=2025.4.15",
     "openai>=1.102.0",
     "requests>=2.32.5",
+    "smart-open[all]>=7.3.0.post1",
 ]
 
 [tool.mypy]

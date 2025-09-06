@@ -1,11 +1,13 @@
 """
-AWS Lambda handler for BSE News Analyzer with S3 mountpoint support.
+AWS Lambda handler for BSE News Analyzer with smart_open integration.
 """
 import json
+import os
 from typing import Dict, Any
 
 # Import from the main application
 from client.qwen import QwenClient
+from smart_open import open
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -33,8 +35,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         print(f"Analyzing BSE news for: {company_name}")
 
-        # Initialize Qwen client (will use S3 mountpoint via $HOME/.qwen/)
-        qwen = QwenClient()
+        # Get S3 bucket from environment
+        s3_bucket = os.environ.get("S3_BUCKET_NAME", "bse-news-analyzer-data")
+
+        # Initialize Qwen client with S3 credentials URI
+        creds_uri = f"s3://{s3_bucket}/.qwen/oauth_creds.json"
+        qwen = QwenClient(creds_uri=creds_uri)
 
         # Initialize BSE News Agent
         from tools.web_fetch import BSENewsAgent, ApprovalMode
@@ -44,10 +50,19 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Perform analysis
         analysis = agent.analyze_company_news(company_name)
 
-        # Save analysis to mounted outputs directory
+        # Save analysis to S3 using smart_open
         if analysis["status"] == "success":
-            filepath = agent.save_analysis_to_file(analysis)
-            print(f"Analysis saved to: {filepath}")
+            import datetime
+
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{company_name.lower().replace(' ', '_')}_{timestamp}.json"
+            output_uri = f"s3://{s3_bucket}/outputs/{filename}"
+
+            with open(output_uri, "w") as f:
+                json.dump(analysis, f, indent=2)
+
+            print(f"Analysis saved to: {output_uri}")
+            analysis["s3_location"] = output_uri
 
         # Return response
         response_body = {

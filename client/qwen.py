@@ -4,29 +4,27 @@ import json
 import requests
 from datetime import datetime, timezone
 from openai import OpenAI
+from smart_open import open
 
 MODEL = "qwen3-coder-plus"
 
 
 class QwenClient:
-    def __init__(self) -> None:
-        self.creds_path = Path.home() / ".qwen" / "oauth_creds.json"
+    def __init__(self, creds_uri: str = None) -> None:
+        self.creds_uri = creds_uri or str(Path.home() / ".qwen" / "oauth_creds.json")
         self.credentials = self._load_credentials()
         self._display_token_expiration()
         self.client = self._initialize_client()
 
     def _load_credentials(self) -> dict:
-        """Load OAuth credentials from Qwen config file"""
-        if not self.creds_path.exists():
-            raise FileNotFoundError(f"Credentials file not found: {self.creds_path}")
-
+        """Load OAuth credentials from file or S3 using smart_open"""
         try:
-            with open(self.creds_path, "r") as f:
+            with open(self.creds_uri, "r") as f:
                 return dict(json.load(f))
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in credentials file: {e}")
         except Exception as e:
-            raise Exception(f"Error reading credentials file: {e}")
+            raise Exception(f"Error reading credentials from {self.creds_uri}: {e}")
 
     def _display_token_expiration(self) -> None:
         """Display token expiration information if available"""
