@@ -76,7 +76,8 @@ resource "aws_lambda_function" "bse_news_analyzer" {
 
   environment {
     variables = {
-      S3_BUCKET_NAME = var.s3_bucket_name
+      S3_BUCKET_NAME = var.s3_bucket_name,
+      PYTHONPATH     = "/var/task/packages"
     }
   }
 
@@ -99,7 +100,8 @@ resource "aws_lambda_function" "creds_refresh" {
 
   environment {
     variables = {
-      S3_BUCKET_NAME = var.s3_bucket_name
+      S3_BUCKET_NAME = var.s3_bucket_name,
+      PYTHONPATH     = "/var/task/packages"
     }
   }
 

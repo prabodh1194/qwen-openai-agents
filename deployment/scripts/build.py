@@ -3,6 +3,7 @@ Build Lambda deployment package.
 """
 import shutil
 import tempfile
+import subprocess
 from pathlib import Path
 
 
@@ -29,11 +30,15 @@ def build_lambda_package() -> Path:
         # Copy source code
         source_dir = find_repo_root(Path(__file__))
 
-        # Copy main application files
+        # Copy main application files (excluding .pyc files)
         for item in source_dir.iterdir():
             if item.name in ["cli", "client", "tools", "main.py", "pyproject.toml"]:
                 if item.is_dir():
-                    shutil.copytree(item, build_path / item.name)
+                    shutil.copytree(
+                        item,
+                        build_path / item.name,
+                        ignore=shutil.ignore_patterns("*.pyc", "__pycache__"),
+                    )
                 else:
                     shutil.copy2(item, build_path / item.name)
 
@@ -41,6 +46,38 @@ def build_lambda_package() -> Path:
         lambda_handler = Path(__file__).parent.parent / "lambda" / "lambda_handler.py"
         if lambda_handler.exists():
             shutil.copy2(lambda_handler, build_path / "lambda_handler.py")
+
+        # Export and install dependencies using uv
+        print("Exporting dependencies...")
+        requirements_file = build_path / "requirements.txt"
+        subprocess.run(
+            ["uv", "export", "--frozen", "--no-dev", "-o", str(requirements_file)],
+            cwd=source_dir,
+            check=True,
+        )
+
+        print("Installing dependencies with Lambda platform...")
+        packages_dir = build_path / "packages"
+        packages_dir.mkdir()
+
+        subprocess.run(
+            [
+                "uv",
+                "pip",
+                "install",
+                "--target",
+                str(packages_dir),
+                "--no-installer-metadata",
+                "--no-compile-bytecode",
+                "--python-platform",
+                "x86_64-manylinux2014",
+                "--python",
+                "3.13",
+                "-r",
+                str(requirements_file),
+            ],
+            check=True,
+        )
 
         # Create zip package
         zip_path = find_repo_root(Path(__file__)) / "lambda-package.zip"
