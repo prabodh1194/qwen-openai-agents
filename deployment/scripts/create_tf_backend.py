@@ -7,7 +7,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 
-def create_tfstate_bucket():
+def create_tfstate_bucket() -> bool:
     """Create S3 bucket for Terraform state with versioning and encryption."""
 
     s3 = boto3.client("s3", region_name="us-east-1")
@@ -46,7 +46,7 @@ def create_tfstate_bucket():
             return False
 
 
-def create_tfstate_lock_table():
+def create_tfstate_lock_table() -> bool:
     """Create DynamoDB table for Terraform state locking."""
 
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
@@ -78,7 +78,7 @@ def create_tfstate_lock_table():
             return False
 
 
-def main():
+def main() -> bool:
     """Create both S3 bucket and DynamoDB table."""
 
     print("Creating Terraform backend resources...")

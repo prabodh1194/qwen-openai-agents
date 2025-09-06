@@ -47,10 +47,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         new_credentials = qwen.refresh_token()
 
         # Save updated credentials locally (to mounted S3 path)
-        with open(qwen.creds_path, "w") as f:
+        with open(qwen.creds_uri, "w") as f:
             json.dump(new_credentials, f, indent=2)
 
-        print(f"✓ Tokens refreshed and saved to {qwen.creds_path}")
+        print(f"✓ Tokens refreshed and saved to {qwen.creds_uri}")
 
         # Upload to S3 (for redundancy and manual access)
         print("Uploading credentials to S3...")

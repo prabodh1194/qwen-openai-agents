@@ -14,7 +14,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def run_terraform(command: str, terraform_dir: Path):
+def run_terraform(command: str, terraform_dir: Path) -> bool:
     """Run terraform command in specified directory."""
 
     original_dir = os.getcwd()
@@ -51,7 +51,7 @@ def run_terraform(command: str, terraform_dir: Path):
         os.chdir(original_dir)
 
 
-def deploy_infrastructure():
+def deploy_infrastructure() -> bool:
     """Deploy complete infrastructure."""
 
     terraform_dir = Path(__file__).parent.parent / "terraform"
@@ -70,7 +70,7 @@ def deploy_infrastructure():
     return True
 
 
-def destroy_infrastructure():
+def destroy_infrastructure() -> bool:
     """Destroy deployed infrastructure."""
 
     terraform_dir = Path(__file__).parent.parent / "terraform"

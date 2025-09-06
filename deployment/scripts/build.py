@@ -16,7 +16,7 @@ def find_repo_root(start_path: Path) -> Path:
     raise FileNotFoundError("Not in a git repository - .git directory not found")
 
 
-def build_lambda_package():
+def build_lambda_package() -> Path:
     """Build Lambda deployment package with all dependencies."""
 
     # Create temporary build directory
@@ -44,7 +44,7 @@ def build_lambda_package():
 
         # Create zip package
         zip_path = find_repo_root(Path(__file__)) / "lambda-package.zip"
-        shutil.make_archive(zip_path.with_suffix(""), "zip", build_path)
+        shutil.make_archive(str(zip_path.with_suffix("")), "zip", str(build_path))
 
         print(f"Package created: {zip_path}")
         return zip_path

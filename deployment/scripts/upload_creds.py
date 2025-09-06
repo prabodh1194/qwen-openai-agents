@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 
-def upload_credentials_to_s3(bucket_name: str, region: str = "us-east-1"):
+def upload_credentials_to_s3(bucket_name: str, region: str = "us-east-1") -> None:
     """Upload credentials to S3 bucket for Lambda mountpoint."""
 
     # Load local credentials

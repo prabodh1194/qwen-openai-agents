@@ -10,7 +10,7 @@ MODEL = "qwen3-coder-plus"
 
 
 class QwenClient:
-    def __init__(self, creds_uri: str = None) -> None:
+    def __init__(self, creds_uri: str | None = None) -> None:
         self.creds_uri = creds_uri or str(Path.home() / ".qwen" / "oauth_creds.json")
         self.credentials = self._load_credentials()
         self._display_token_expiration()
