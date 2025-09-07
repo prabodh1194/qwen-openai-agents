@@ -67,7 +67,7 @@ resource "aws_lambda_function" "bse_news_analyzer" {
   function_name = var.lambda_function_name
   role          = aws_iam_role.lambda_role.arn
   handler       = "lambda_handler.lambda_handler"
-  runtime       = "python3.11"
+  runtime       = "python3.13"
   timeout       = var.lambda_timeout
   memory_size   = var.lambda_memory_size
 
@@ -91,7 +91,7 @@ resource "aws_lambda_function" "creds_refresh" {
   function_name = "${var.lambda_function_name}-creds-refresh"
   role          = aws_iam_role.lambda_role.arn
   handler       = "refresh_creds_handler.lambda_handler"
-  runtime       = "python3.11"
+  runtime       = "python3.13"
   timeout       = 300 # 5 minutes
   memory_size   = 128
 
