@@ -705,7 +705,7 @@ Be objective and focus on quantifiable business impact rather than general marke
         date_str = analysis_data.get(
             "analysis_date", datetime.now().strftime("%Y-%m-%d")
         )
-        fn = f"{output_uri}/{date_str}/{self._generate_filename(analysis_data['company'])}"
+        fn = f"{output_uri}/outputs/{date_str}/{self._generate_filename(analysis_data['company'])}"
 
         # If output_uri is provided, save directly to that URI (could be S3 or local)
         with open(fn, "w", encoding="utf-8") as f:
