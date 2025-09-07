@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from datetime import datetime
 
+from smart_open import open
 from openai import OpenAI
 
 import client.qwen
