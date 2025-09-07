@@ -1,6 +1,7 @@
 """
 CLI module for refreshing Qwen API tokens
 """
+from pathlib import Path
 
 import click
 import json
@@ -8,12 +9,12 @@ import json
 from client.qwen import QwenClient
 
 
-@click.command()
+@click.command()  # type: ignore[misc]
 def refresh_qwen_token() -> None:
     """Refresh Qwen API tokens using the refresh token."""
     try:
         click.echo("Refreshing Qwen API tokens...")
-        qwen = QwenClient()
+        qwen = QwenClient(str(Path.home() / ".qwen" / "oauth_creds.json"))
 
         # Check if we have a refresh token
         refresh_token = qwen.credentials.get("refresh_token")

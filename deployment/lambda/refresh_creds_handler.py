@@ -3,14 +3,13 @@ AWS Lambda handler for refreshing Qwen credentials and updating S3 mountpoint.
 """
 import json
 import os
-from pathlib import Path
 from typing import Dict, Any
+from smart_open import open
 
 # Import from the main application
 from client.qwen import QwenClient
 
 # Import S3 upload function
-from deployment.scripts.upload_creds import upload_credentials_to_s3
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -25,7 +24,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     try:
         # Get configuration from environment variables
         bucket_name = os.environ.get("S3_BUCKET_NAME")
-        region = os.environ.get("AWS_REGION", "us-east-1")
 
         if not bucket_name:
             return {
@@ -45,17 +43,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         print("Refreshing Qwen API tokens...")
         new_credentials = qwen.refresh_token()
 
-        # Update the credentials URI to point to the local path for saving
-        qwen.creds_uri = str(Path.home() / ".qwen" / "oauth_creds.json")
         # Save updated credentials locally (to mounted S3 path)
         with open(qwen.creds_uri, "w") as f:
             json.dump(new_credentials, f, indent=2)
 
         print(f"✓ Tokens refreshed and saved to {qwen.creds_uri}")
-
-        # Upload to S3 (for redundancy and manual access)
-        print("Uploading credentials to S3...")
-        upload_credentials_to_s3(bucket_name, region)
 
         print("✓ Credentials refresh completed successfully")
 

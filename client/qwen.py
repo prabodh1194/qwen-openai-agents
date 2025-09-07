@@ -77,7 +77,7 @@ class QwenClient:
         Returns:
             Updated credentials dictionary with new access token and possibly new refresh token
         """
-        refresh_token = self.credentials.get("refresh_token")
+        refresh_token = self.credentials["refresh_token"]
         if not refresh_token:
             raise ValueError("No refresh token available for token refresh")
 
