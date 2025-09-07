@@ -18,7 +18,8 @@ import click
     help="Run invocations asynchronously or synchronously",
 )
 @click.option("--limit", type=int, help="Limit the number of companies to process")
-def invoke_lambda(async_mode: bool, limit: int) -> None:
+@click.option("--quiet", "-q", is_flag=True, help="Suppress verbose output")
+def invoke_lambda(async_mode: bool, limit: int, quiet: bool) -> None:
     """Invoke AWS Lambda function for BSE news analysis for all companies in stocks_100 file."""
     try:
         # Read company names from stocks file
@@ -34,23 +35,33 @@ def invoke_lambda(async_mode: bool, limit: int) -> None:
         if limit:
             company_names = company_names[:limit]
 
+        # Verbose is the default behavior, only suppress if quiet flag is set
+        verbose = not quiet
+
         click.echo(f"Processing {len(company_names)} companies...")
+        
+        # Print company names unless quiet mode is enabled
+        if verbose:
+            click.echo("Companies to process:")
+            for i, company in enumerate(company_names, 1):
+                click.echo(f"  {i}. {company}")
+            click.echo("")
 
         if async_mode:
             # Run asynchronously
-            asyncio.run(invoke_lambda_async(company_names))
+            asyncio.run(invoke_lambda_async(company_names, verbose))
         else:
             # Run synchronously
-            invoke_lambda_sync(company_names)
+            invoke_lambda_sync(company_names, verbose)
 
     except Exception as e:
         click.echo(f"Error: {str(e)}", err=True)
         raise click.Abort()
 
 
-async def invoke_lambda_async(company_names: List[str]) -> None:
+async def invoke_lambda_async(company_names: List[str], verbose: bool) -> None:
     """Invoke Lambda functions asynchronously."""
-    tasks = [invoke_single_lambda_async(company) for company in company_names]
+    tasks = [invoke_single_lambda_async(company, verbose) for company in company_names]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     success_count = sum(1 for result in results if result is True)
@@ -59,9 +70,13 @@ async def invoke_lambda_async(company_names: List[str]) -> None:
     )
 
 
-async def invoke_single_lambda_async(company_name: str) -> bool:
+async def invoke_single_lambda_async(company_name: str, verbose: bool) -> bool:
     """Invoke Lambda function for a single company asynchronously."""
     try:
+        # Print company name being processed unless quiet mode is enabled
+        if verbose:
+            click.echo(f"Invoking Lambda for: {company_name}")
+        
         # Prepare the payload
         payload = {"company_name": company_name}
 
@@ -98,12 +113,16 @@ async def invoke_single_lambda_async(company_name: str) -> bool:
         return False
 
 
-def invoke_lambda_sync(company_names: List[str]) -> None:
+def invoke_lambda_sync(company_names: List[str], verbose: bool) -> None:
     """Invoke Lambda functions synchronously."""
     success_count = 0
 
     for company_name in company_names:
         try:
+            # Print company name being processed unless quiet mode is enabled
+            if verbose:
+                click.echo(f"Invoking Lambda for: {company_name}")
+            
             # Prepare the payload
             payload = {"company_name": company_name}
 

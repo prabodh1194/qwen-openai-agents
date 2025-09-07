@@ -695,7 +695,7 @@ Be objective and focus on quantifiable business impact rather than general marke
         return f"{filename}.json"
 
     def save_analysis_to_file(
-        self, analysis_data: dict[str, Any], output_uri: str | None = None
+        self, analysis_data: dict[str, Any], output_uri: str
     ) -> str:
         """Save analysis results to dated directory or specified URI"""
         import json
@@ -703,10 +703,9 @@ Be objective and focus on quantifiable business impact rather than general marke
         import datetime
 
         # If output_uri is provided, save directly to that URI (could be S3 or local)
-        if output_uri:
-            with open(output_uri, "w", encoding="utf-8") as f:
-                json.dump(analysis_data, f, indent=2, ensure_ascii=False)
-            return output_uri
+        with open(output_uri, "w", encoding="utf-8") as f:
+            json.dump(analysis_data, f, indent=2, ensure_ascii=False)
+        return output_uri
 
         # Default local filesystem behavior
         # Create outputs directory if it doesn't exist

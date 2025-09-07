@@ -24,7 +24,7 @@ def scrape_bse_news(company_name: str) -> None:
 
         if analysis["status"] == "success":
             # Save analysis to file
-            filepath = service.save_analysis(analysis)
+            filepath = service.save_analysis(analysis, "outputs")
 
             # Display formatted results
             output = service.format_console_response(analysis, filepath)

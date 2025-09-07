@@ -6,6 +6,7 @@ import json
 from typing import Any
 from client.qwen import QwenClient
 from tools.web_fetch import BSENewsAgent, ApprovalMode
+from smart_open import open
 
 
 class BSEAnalysisService:
@@ -34,7 +35,7 @@ class BSEAnalysisService:
         return self.agent.analyze_company_news(company_name)
 
     def save_analysis(
-        self, analysis: dict[str, Any], output_uri: str | None = None
+        self, analysis: dict[str, Any], output_uri: str
     ) -> str:
         """
         Save analysis results to file or URI.
@@ -46,10 +47,7 @@ class BSEAnalysisService:
         Returns:
             Path or URI where analysis was saved
         """
-        if output_uri:
-            return self.agent.save_analysis_to_file(analysis, output_uri)
-        else:
-            return self.agent.save_analysis_to_file(analysis)
+        return self.agent.save_analysis_to_file(analysis, output_uri)
 
     def format_console_response(self, analysis: dict[str, Any], filepath: str) -> str:
         """
