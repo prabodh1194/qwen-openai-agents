@@ -8,10 +8,7 @@ from typing import Dict, Any
 # Import from the main application
 from client.qwen import QwenClient
 
-# Import S3 upload function - use absolute import for Lambda compatibility
-
-# Add the deployment/scripts directory to Python path
-
+# Import S3 upload function
 from deployment.scripts.upload_creds import upload_credentials_to_s3
 
 

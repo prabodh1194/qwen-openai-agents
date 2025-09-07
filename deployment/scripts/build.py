@@ -32,7 +32,14 @@ def build_lambda_package() -> Path:
 
         # Copy main application files (excluding .pyc files)
         for item in source_dir.iterdir():
-            if item.name in ["cli", "client", "tools", "main.py", "pyproject.toml"]:
+            if item.name in [
+                "cli",
+                "client",
+                "services",
+                "tools",
+                "main.py",
+                "pyproject.toml",
+            ]:
                 if item.is_dir():
                     shutil.copytree(
                         item,
@@ -42,10 +49,22 @@ def build_lambda_package() -> Path:
                 else:
                     shutil.copy2(item, build_path / item.name)
 
-        # Copy deployment lambda handler
-        lambda_handler = Path(__file__).parent.parent / "lambda" / "lambda_handler.py"
-        if lambda_handler.exists():
-            shutil.copy2(lambda_handler, build_path / "lambda_handler.py")
+        # Copy deployment scripts
+        deployment_scripts_dir = source_dir / "deployment" / "scripts"
+        if deployment_scripts_dir.exists():
+            shutil.copytree(
+                deployment_scripts_dir,
+                build_path / "deployment" / "scripts",
+                ignore=shutil.ignore_patterns("*.pyc", "__pycache__"),
+            )
+
+        # Copy deployment lambda handlers
+        lambda_dir = Path(__file__).parent.parent / "lambda"
+        lambda_handlers = ["lambda_handler.py", "refresh_creds_handler.py"]
+        for handler in lambda_handlers:
+            handler_path = lambda_dir / handler
+            if handler_path.exists():
+                shutil.copy2(handler_path, build_path / handler)
 
         # Export and install dependencies using uv
         print("Exporting dependencies...")
