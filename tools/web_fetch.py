@@ -413,6 +413,7 @@ class BSENewsAgent:
 
         if not unique_articles:
             print("[BSENewsAgent] No articles found for analysis")
+            # Create a placeholder record when no articles are found
             return {
                 "company": company_name,
                 "analysis_date": datetime.now().strftime("%Y-%m-%d"),
@@ -422,8 +423,9 @@ class BSENewsAgent:
                 "key_positive_drivers": [],
                 "key_risk_factors": [],
                 "confidence": 0,
-                "status": "error",
+                "status": "success",  # Changed to success so it gets saved to bucket
                 "display_message": "No articles found for analysis",
+                "analysis_reasoning": "No relevant news articles were found for this company in the past 7 days.",
             }
 
         print(f"[BSENewsAgent] Sending {len(unique_articles)} articles for analysis")

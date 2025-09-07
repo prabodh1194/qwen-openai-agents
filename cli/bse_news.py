@@ -22,10 +22,10 @@ def scrape_bse_news(company_name: str) -> None:
         click.echo(f"Analyzing BSE news for: {company_name}")
         analysis = service.analyze_company(company_name)
 
-        if analysis["status"] == "success":
-            # Save analysis to file
-            filepath = service.save_analysis(analysis, "outputs")
+        # Save analysis to file (save all analyses, including placeholders for companies with no news)
+        filepath = service.save_analysis(analysis, "outputs")
 
+        if analysis["status"] == "success":
             # Display formatted results
             output = service.format_console_response(analysis, filepath)
             click.echo(f"\n{output}")

@@ -44,16 +44,15 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         # Perform analysis
         analysis = service.analyze_company(company_name)
 
-        # Save analysis to S3
-        if analysis["status"] == "success":
-            # Generate filename using the shared method
+        # Save analysis to S3 (save all analyses, including placeholders for companies with no news)
+        # Generate filename using the shared method
 
-            # Save to S3
-            s3_output_uri = f"s3://{s3_bucket}"
-            service.save_analysis(analysis, s3_output_uri)
+        # Save to S3
+        s3_output_uri = f"s3://{s3_bucket}"
+        service.save_analysis(analysis, s3_output_uri)
 
-            print(f"Analysis saved to: {s3_output_uri}")
-            analysis["s3_location"] = s3_output_uri
+        print(f"Analysis saved to: {s3_output_uri}")
+        analysis["s3_location"] = s3_output_uri
 
         # Return formatted API response
         return service.format_api_response(analysis, analysis.get("s3_location"))
