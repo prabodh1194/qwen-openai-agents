@@ -49,7 +49,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             # Generate filename using the shared method
 
             # Save to S3
-            s3_output_uri = f"s3://{s3_bucket}/"
+            s3_output_uri = f"s3://{s3_bucket}"
             service.save_analysis(analysis, s3_output_uri)
 
             print(f"Analysis saved to: {s3_output_uri}")
