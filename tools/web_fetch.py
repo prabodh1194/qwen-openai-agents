@@ -694,11 +694,21 @@ Be objective and focus on quantifiable business impact rather than general marke
         filename = filename.strip("_")
         return f"{filename}.json"
 
-    def save_analysis_to_file(self, analysis_data: dict[str, Any]) -> str:
-        """Save analysis results to dated directory"""
+    def save_analysis_to_file(
+        self, analysis_data: dict[str, Any], output_uri: str | None = None
+    ) -> str:
+        """Save analysis results to dated directory or specified URI"""
         import json
         import os
+        import datetime
 
+        # If output_uri is provided, save directly to that URI (could be S3 or local)
+        if output_uri:
+            with open(output_uri, "w", encoding="utf-8") as f:
+                json.dump(analysis_data, f, indent=2, ensure_ascii=False)
+            return output_uri
+
+        # Default local filesystem behavior
         # Create outputs directory if it doesn't exist
         outputs_dir = "outputs"
         if not os.path.exists(outputs_dir):
@@ -706,7 +716,7 @@ Be objective and focus on quantifiable business impact rather than general marke
 
         # Create dated subdirectory
         date_str = analysis_data.get(
-            "analysis_date", datetime.now().strftime("%Y-%m-%d")
+            "analysis_date", datetime.datetime.now().strftime("%Y-%m-%d")
         )
         dated_dir = os.path.join(outputs_dir, date_str)
         if not os.path.exists(dated_dir):

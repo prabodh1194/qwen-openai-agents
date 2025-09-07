@@ -4,8 +4,7 @@ CLI module for BSE News Scraper
 
 import click
 
-from client.qwen import QwenClient
-from tools.web_fetch import ApprovalMode, BSENewsAgent
+from services.bse_analysis_service import BSEAnalysisService
 
 
 @click.command()  # type: ignore[misc]
@@ -13,41 +12,22 @@ from tools.web_fetch import ApprovalMode, BSENewsAgent
 def scrape_bse_news(company_name: str) -> None:
     """Scrape and analyze BSE news for a given company."""
     try:
-        # Initialize client
-        click.echo("Initializing Qwen client...")
-        qwen = QwenClient()
-        click.echo("✓ Client initialized")
+        # Initialize service
+        click.echo("Initializing BSE analysis service...")
+        service = BSEAnalysisService()
+        click.echo("✓ Service initialized")
 
-        # Initialize BSE News Agent
+        # Perform analysis
         click.echo(f"Analyzing BSE news for: {company_name}")
-        agent = BSENewsAgent(qwen.client, ApprovalMode.AUTO_EDIT)
-        analysis = agent.analyze_company_news(company_name)
+        analysis = service.analyze_company(company_name)
 
         if analysis["status"] == "success":
             # Save analysis to file
-            filepath = agent.save_analysis_to_file(analysis)
+            filepath = service.save_analysis(analysis)
 
-            click.echo("\n" + "=" * 60)
-            click.echo(f"ANALYSIS FOR {company_name.upper()}")
-            click.echo("=" * 60)
-            click.echo(f"Overall Sentiment: {analysis['overall_sentiment']}/5")
-            click.echo(f"Confidence: {analysis['confidence']}%")
-            click.echo(f"Articles Analyzed: {analysis['articles_analyzed']}")
-
-            if analysis.get("analysis_reasoning"):
-                click.echo(f"\nReasoning: {analysis['analysis_reasoning']}")
-
-            if analysis["key_positive_drivers"]:
-                click.echo("\nKey Positive Drivers:")
-                for driver in analysis["key_positive_drivers"]:
-                    click.echo(f"  • {driver}")
-
-            if analysis["key_risk_factors"]:
-                click.echo("\nKey Risk Factors:")
-                for risk in analysis["key_risk_factors"]:
-                    click.echo(f"  • {risk}")
-
-            click.echo(f"\nDetailed analysis saved to: {filepath}")
+            # Display formatted results
+            output = service.format_console_response(analysis, filepath)
+            click.echo(f"\n{output}")
 
         else:
             click.echo(f"Error: {analysis['display_message']}")
