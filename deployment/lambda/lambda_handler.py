@@ -47,10 +47,9 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         # Save analysis to S3
         if analysis["status"] == "success":
             # Generate filename using the shared method
-            filename = service.agent._generate_filename(company_name)
 
             # Save to S3
-            s3_output_uri = f"s3://{s3_bucket}/outputs/{filename}"
+            s3_output_uri = f"s3://{s3_bucket}/"
             service.save_analysis(analysis, s3_output_uri)
 
             print(f"Analysis saved to: {s3_output_uri}")

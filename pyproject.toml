@@ -30,7 +30,7 @@ warn_unreachable = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
-module = ["openai.*"]
+module = ["openai.*", "click.*"]
 ignore_missing_imports = true
 
 [dependency-groups]

@@ -10,15 +10,15 @@ from typing import List
 import click
 
 
-@click.command()
-@click.option(
+@click.command()  # type: ignore[misc]
+@click.option(  # type: ignore[misc]
     "--async/--sync",
     "async_mode",
     default=True,
     help="Run invocations asynchronously or synchronously",
 )
-@click.option("--limit", type=int, help="Limit the number of companies to process")
-@click.option("--quiet", "-q", is_flag=True, help="Suppress verbose output")
+@click.option("--limit", type=int, help="Limit the number of companies to process")  # type: ignore[misc]
+@click.option("--quiet", "-q", is_flag=True, help="Suppress verbose output")  # type: ignore[misc]
 def invoke_lambda(async_mode: bool, limit: int, quiet: bool) -> None:
     """Invoke AWS Lambda function for BSE news analysis for all companies in stocks_100 file."""
     try:
@@ -39,7 +39,7 @@ def invoke_lambda(async_mode: bool, limit: int, quiet: bool) -> None:
         verbose = not quiet
 
         click.echo(f"Processing {len(company_names)} companies...")
-        
+
         # Print company names unless quiet mode is enabled
         if verbose:
             click.echo("Companies to process:")
@@ -76,7 +76,7 @@ async def invoke_single_lambda_async(company_name: str, verbose: bool) -> bool:
         # Print company name being processed unless quiet mode is enabled
         if verbose:
             click.echo(f"Invoking Lambda for: {company_name}")
-        
+
         # Prepare the payload
         payload = {"company_name": company_name}
 
@@ -122,7 +122,7 @@ def invoke_lambda_sync(company_names: List[str], verbose: bool) -> None:
             # Print company name being processed unless quiet mode is enabled
             if verbose:
                 click.echo(f"Invoking Lambda for: {company_name}")
-            
+
             # Prepare the payload
             payload = {"company_name": company_name}
 

@@ -9,7 +9,7 @@ from cli.invoke_lambda import invoke_lambda
 from cli.refresh_token import refresh_qwen_token
 
 
-@click.group()
+@click.group()  # type: ignore[misc]
 def cli() -> None:
     """BSE News Scraper CLI"""
     pass

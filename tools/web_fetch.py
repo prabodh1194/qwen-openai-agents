@@ -1,3 +1,5 @@
+import json
+
 import requests
 import html2text
 import urllib.parse
@@ -698,35 +700,13 @@ Be objective and focus on quantifiable business impact rather than general marke
         self, analysis_data: dict[str, Any], output_uri: str
     ) -> str:
         """Save analysis results to dated directory or specified URI"""
-        import json
-        import os
-        import datetime
+
+        date_str = analysis_data.get(
+            "analysis_date", datetime.now().strftime("%Y-%m-%d")
+        )
+        fn = f"{output_uri}/{date_str}/{self._generate_filename(analysis_data['company'])}"
 
         # If output_uri is provided, save directly to that URI (could be S3 or local)
-        with open(output_uri, "w", encoding="utf-8") as f:
+        with open(fn, "w", encoding="utf-8") as f:
             json.dump(analysis_data, f, indent=2, ensure_ascii=False)
         return output_uri
-
-        # Default local filesystem behavior
-        # Create outputs directory if it doesn't exist
-        outputs_dir = "outputs"
-        if not os.path.exists(outputs_dir):
-            os.makedirs(outputs_dir)
-
-        # Create dated subdirectory
-        date_str = analysis_data.get(
-            "analysis_date", datetime.datetime.now().strftime("%Y-%m-%d")
-        )
-        dated_dir = os.path.join(outputs_dir, date_str)
-        if not os.path.exists(dated_dir):
-            os.makedirs(dated_dir)
-
-        # Generate filename
-        filename = self._generate_filename(analysis_data["company"])
-        filepath = os.path.join(dated_dir, filename)
-
-        # Write JSON data
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(analysis_data, f, indent=2, ensure_ascii=False)
-
-        return filepath
