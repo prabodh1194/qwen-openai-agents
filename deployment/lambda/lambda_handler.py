@@ -2,13 +2,13 @@
 AWS Lambda handler for BSE News Analyzer with smart_open integration.
 """
 import os
-from typing import Dict, Any
+from typing import Any
 
 # Import from the main application
 from services.bse_analysis_service import BSEAnalysisService
 
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """
     Lambda function handler for analyzing BSE news.
 
@@ -26,12 +26,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         ).get("company_name")
 
         if not company_name:
-            service = BSEAnalysisService()
             error_analysis = {
                 "status": "error",
                 "display_message": "company_name parameter is required",
             }
-            return service.format_api_response(error_analysis)
+            return BSEAnalysisService.format_api_response(error_analysis)
 
         print(f"Analyzing BSE news for: {company_name}")
 
@@ -64,6 +63,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         print(f"Error in Lambda function: {str(e)}")
 
         # Return error response
-        service = BSEAnalysisService()
+        # Get S3 bucket from environment
+        s3_bucket = os.environ.get("S3_BUCKET_NAME", "bse-news-analyzer-data")
+        # Initialize service with S3 credentials URI even for error handling
+        creds_uri = f"s3://{s3_bucket}/.qwen/oauth_creds.json"
+        service = BSEAnalysisService(creds_uri=creds_uri)
         error_analysis = {"status": "error", "display_message": str(e)}
         return service.format_api_response(error_analysis)

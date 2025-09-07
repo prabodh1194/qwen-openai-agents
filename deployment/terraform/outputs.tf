@@ -13,6 +13,11 @@ output "lambda_function_url" {
   value       = aws_lambda_function_url.bse_news_analyzer.function_url
 }
 
+output "lambda_creds_refresh_function_name" {
+  description = "Name of the credentials refresh Lambda function"
+  value       = aws_lambda_function.creds_refresh.function_name
+}
+
 output "s3_bucket_name" {
   description = "Name of the S3 data bucket"
   value       = aws_s3_bucket.data_bucket.bucket

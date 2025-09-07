@@ -3,7 +3,7 @@ Shared service layer for BSE news analysis that eliminates duplication
 between CLI and Lambda implementations.
 """
 import json
-from typing import Dict, Any, Optional
+from typing import Any
 from client.qwen import QwenClient
 from tools.web_fetch import BSENewsAgent, ApprovalMode
 
@@ -11,17 +11,17 @@ from tools.web_fetch import BSENewsAgent, ApprovalMode
 class BSEAnalysisService:
     """Service layer for BSE news analysis operations"""
 
-    def __init__(self, creds_uri: Optional[str] = None):
+    def __init__(self, creds_uri: str):
         """
         Initialize the service with optional credentials URI.
 
         Args:
             creds_uri: Optional URI for credentials (for Lambda with S3)
         """
-        self.qwen = QwenClient(creds_uri=creds_uri) if creds_uri else QwenClient()
+        self.qwen = QwenClient(creds_uri=creds_uri)
         self.agent = BSENewsAgent(self.qwen.client, ApprovalMode.AUTO_EDIT)
 
-    def analyze_company(self, company_name: str) -> Dict[str, Any]:
+    def analyze_company(self, company_name: str) -> dict[str, Any]:
         """
         Analyze BSE news for a given company.
 
@@ -34,7 +34,7 @@ class BSEAnalysisService:
         return self.agent.analyze_company_news(company_name)
 
     def save_analysis(
-        self, analysis: Dict[str, Any], output_uri: Optional[str] = None
+        self, analysis: dict[str, Any], output_uri: str | None = None
     ) -> str:
         """
         Save analysis results to file or URI.
@@ -51,7 +51,7 @@ class BSEAnalysisService:
         else:
             return self.agent.save_analysis_to_file(analysis)
 
-    def format_console_response(self, analysis: Dict[str, Any], filepath: str) -> str:
+    def format_console_response(self, analysis: dict[str, Any], filepath: str) -> str:
         """
         Format analysis results for console output.
 
@@ -90,9 +90,10 @@ class BSEAnalysisService:
 
         return "\n".join(output)
 
+    @staticmethod
     def format_api_response(
-        self, analysis: Dict[str, Any], s3_location: Optional[str] = None
-    ) -> Dict[str, Any]:
+        analysis: dict[str, Any], s3_location: str | None = None
+    ) -> dict[str, Any]:
         """
         Format analysis results for API response.
 

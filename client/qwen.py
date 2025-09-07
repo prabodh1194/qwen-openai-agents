@@ -1,5 +1,4 @@
 # qwen_client.py
-from pathlib import Path
 import json
 import requests
 from datetime import datetime, timezone
@@ -10,8 +9,8 @@ MODEL = "qwen3-coder-plus"
 
 
 class QwenClient:
-    def __init__(self, creds_uri: str | None = None) -> None:
-        self.creds_uri = creds_uri or str(Path.home() / ".qwen" / "oauth_creds.json")
+    def __init__(self, creds_uri: str) -> None:
+        self.creds_uri = creds_uri
         self.credentials = self._load_credentials()
         self._display_token_expiration()
         self.client = self._initialize_client()
@@ -61,11 +60,7 @@ class QwenClient:
 
     def _initialize_client(self) -> OpenAI:
         """Initialize OpenAI client with Qwen credentials"""
-        api_key = (
-            self.credentials.get("access_token")
-            or self.credentials.get("api_key")
-            or self.credentials.get("token")
-        )
+        api_key = self.credentials.get("access_token")
 
         if not api_key:
             raise ValueError(
@@ -134,19 +129,3 @@ class QwenClient:
             )  # Store as milliseconds
 
         return new_credentials
-
-
-if __name__ == "__main__":
-    qwen_client = QwenClient()
-    response = qwen_client.client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": "Hello, Qwen! Can you write a Python function to add two numbers?",
-            }
-        ],
-        max_tokens=150,
-        temperature=0.5,
-    )
-    print(response.choices[0].message.content)

@@ -1,6 +1,7 @@
 """
 CLI module for BSE News Scraper
 """
+from pathlib import Path
 
 import click
 
@@ -14,7 +15,7 @@ def scrape_bse_news(company_name: str) -> None:
     try:
         # Initialize service
         click.echo("Initializing BSE analysis service...")
-        service = BSEAnalysisService()
+        service = BSEAnalysisService(str(Path.home() / ".qwen" / "oauth_creds.json"))
         click.echo("✓ Service initialized")
 
         # Perform analysis
