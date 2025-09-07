@@ -372,6 +372,7 @@ class BSENewsAgent:
 
         all_articles = []
         query_results = {}
+        query_article_counts = {}
 
         # Collect articles from all RSS feeds
         for i, query in enumerate(search_queries, 1):
@@ -385,11 +386,13 @@ class BSENewsAgent:
                 articles = self._parse_rss_feed(rss_url, limit=10)
                 all_articles.extend(articles)
                 query_results[query] = articles
+                query_article_counts[query] = len(articles)
 
                 print(f"[BSENewsAgent] Found {len(articles)} articles from search {i}")
 
             except Exception as e:
                 print(f"[BSENewsAgent] ERROR processing query '{query}': {str(e)}")
+                query_article_counts[query] = 0
                 continue
 
         # Deduplicate and limit articles
@@ -490,7 +493,7 @@ Be objective and focus on quantifiable business impact rather than general marke
             return {
                 "company": company_name,
                 "analysis_date": datetime.now().strftime("%Y-%m-%d"),
-                "search_queries_used": search_queries,
+                "query_article_counts": query_article_counts,
                 "articles_analyzed": len(unique_articles),
                 "overall_sentiment": 0,
                 "key_positive_drivers": [],
@@ -507,15 +510,15 @@ Be objective and focus on quantifiable business impact rather than general marke
 
         # Add timing information
         end_time = time.time()
-        print(
-            f"[BSENewsAgent] Analysis completed in {end_time - start_time:.2f} seconds"
-        )
+        analysis_duration = end_time - start_time
+        print(f"[BSENewsAgent] Analysis completed in {analysis_duration:.2f} seconds")
 
         return {
             "company": company_name,
             "analysis_date": datetime.now().strftime("%Y-%m-%d"),
-            "search_queries_used": search_queries,
+            "query_article_counts": query_article_counts,
             "articles_analyzed": len(unique_articles),
+            "analysis_duration_seconds": analysis_duration,
             **sentiment_data,
             "status": "success",
             "display_message": f"Analyzed {len(unique_articles)} unique articles",
