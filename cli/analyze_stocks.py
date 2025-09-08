@@ -4,12 +4,13 @@ CLI module for analyzing all stock analyses for a given date and categorizing th
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Any
 
 import click
 import boto3
 from botocore.exceptions import ClientError
 from tqdm import tqdm
+from client.qwen import QwenClient
 
 
 @click.command()  # type: ignore[misc]
@@ -21,10 +22,16 @@ from tqdm import tqdm
 @click.option(
     "--local-path", type=str, help="Local path to read analyses from instead of S3"
 )  # type: ignore[misc]
+@click.option(
+    "--creds-path",
+    type=str,
+    default="~/.qwen/oauth_creds.json",
+    help="Path to credentials file",
+)  # type: ignore[misc]
 def analyze_stocks(
-    date_str: str, s3_bucket: str, s3_prefix: str, local_path: str
+    date_str: str, s3_bucket: str, s3_prefix: str, local_path: str, creds_path: str
 ) -> None:
-    """Analyze all stock analyses for a given date and categorize as buy/hold/sell."""
+    """Analyze all stock analyses for a given date and categorize as buy/hold/sell using LLM."""
     try:
         # If no date provided, use today's date
         if not date_str:
@@ -42,11 +49,27 @@ def analyze_stocks(
             click.echo("No analyses found for the specified date.")
             return
 
-        # Categorize stocks
-        buy_stocks, hold_stocks, sell_stocks = _categorize_stocks(analyses)
+        # Filter out stocks with 0 articles analyzed
+        filtered_analyses = [
+            analysis
+            for analysis in analyses
+            if analysis.get("status") == "success"
+            and analysis.get("articles_analyzed", 0) > 0
+        ]
+
+        if not filtered_analyses:
+            click.echo("No valid analyses found with articles analyzed.")
+            return
+
+        click.echo(
+            f"Found {len(filtered_analyses)} valid analyses with articles. Performing LLM-based portfolio analysis..."
+        )
+
+        # Perform LLM-based analysis
+        portfolio_analysis = _perform_llm_analysis(filtered_analyses, creds_path)
 
         # Display results
-        _display_results(buy_stocks, hold_stocks, sell_stocks, date_str)
+        _display_results(portfolio_analysis, date_str)
 
     except Exception as e:
         click.echo(f"Error: {str(e)}", err=True)
@@ -118,102 +141,201 @@ def _get_local_analyses(base_path: str, date_str: str) -> List[Dict]:
         return []
 
 
-def _categorize_stocks(
-    analyses: List[Dict]
-) -> Tuple[List[Dict], List[Dict], List[Dict]]:
-    """Categorize stocks based on sentiment scores."""
-    buy_stocks = []  # sentiment > 2
-    hold_stocks = []  # sentiment between -2 and 2
-    sell_stocks = []  # sentiment < -2
+def _perform_llm_analysis(analyses: List[Dict], creds_path: str) -> Dict[str, Any]:
+    """Perform LLM-based analysis of all stock analyses."""
+    try:
+        # Initialize Qwen client
+        qwen = QwenClient(creds_path)
+        client = qwen.client
 
-    # Create a progress bar for categorizing stocks
-    for analysis in tqdm(analyses, desc="Categorizing stocks", unit="analysis"):
-        if analysis.get("status") != "success":
-            continue
+        # Prepare the data for LLM analysis
+        company_data = []
+        for analysis in analyses:
+            company_data.append(
+                {
+                    "company": analysis.get("company", "Unknown"),
+                    "overall_sentiment": analysis.get("overall_sentiment", 0),
+                    "confidence": analysis.get("confidence", 0),
+                    "articles_analyzed": analysis.get("articles_analyzed", 0),
+                    "analysis_reasoning": analysis.get("analysis_reasoning", ""),
+                    "key_positive_drivers": analysis.get("key_positive_drivers", []),
+                    "key_risk_factors": analysis.get("key_risk_factors", []),
+                }
+            )
 
-        # Skip stocks with 0 articles analyzed
-        if analysis.get("articles_analyzed", 0) == 0:
-            continue
+        # Create prompt for LLM analysis
+        prompt = f"""
+You are a financial portfolio analyst. Analyze the following list of companies and their recent news sentiment analysis to provide portfolio recommendations.
 
+COMPANIES ANALYZED:
+{json.dumps(company_data, indent=2)}
+
+TASK:
+1. Categorize each company as BUY, HOLD, or SELL based on their sentiment analysis
+2. Provide a brief rationale for each categorization
+3. Identify overall market trends or themes from the data
+4. Highlight any particularly strong buy or sell opportunities
+5. Note any companies with high confidence scores that warrant special attention
+
+CATEGORIZATION CRITERIA:
+- BUY: Strong positive sentiment (>2) with high confidence OR moderate sentiment with very high confidence
+- SELL: Strong negative sentiment (< -2) OR any sentiment with high risk factors
+- HOLD: Moderate sentiment (-2 to 2) OR low confidence in either direction
+
+OUTPUT FORMAT:
+Return a JSON object with the following structure:
+{{
+    "buy_stocks": [
+        {{
+            "company": "Company Name",
+            "rationale": "Brief rationale for buy recommendation"
+        }}
+    ],
+    "hold_stocks": [
+        {{
+            "company": "Company Name",
+            "rationale": "Brief rationale for hold recommendation"
+        }}
+    ],
+    "sell_stocks": [
+        {{
+            "company": "Company Name",
+            "rationale": "Brief rationale for sell recommendation"
+        }}
+    ],
+    "market_trends": "Overall market trends or themes",
+    "strong_opportunities": "Any particularly strong buy/sell opportunities",
+    "high_confidence_notes": "Notes on companies with high confidence scores"
+}}
+"""
+
+        click.echo("Performing LLM-based analysis...")
+        # Call LLM for analysis
+        response = client.chat.completions.create(
+            model=client.qwen.MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a financial portfolio analyst expert.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+        )
+
+        # Parse the response
+        result = json.loads(response.choices[0].message.content)
+        click.echo("LLM analysis completed successfully.")
+        return dict(result)
+
+    except Exception as e:
+        click.echo(f"Error performing LLM analysis: {str(e)}", err=True)
+        click.echo("Falling back to heuristic-based categorization...")
+        # Fallback to heuristic-based categorization if LLM fails
+        return _fallback_categorization(analyses)
+
+
+def _fallback_categorization(analyses: List[Dict]) -> Dict[str, Any]:
+    """Fallback heuristic-based categorization if LLM analysis fails."""
+    click.echo("Using fallback heuristic-based analysis due to LLM error.")
+
+    buy_stocks = []
+    hold_stocks = []
+    sell_stocks = []
+
+    for analysis in analyses:
         company = analysis.get("company", "Unknown")
         sentiment = analysis.get("overall_sentiment", 0)
         confidence = analysis.get("confidence", 0)
 
-        stock_info = {
-            "company": company,
-            "sentiment": sentiment,
-            "confidence": confidence,
-            "articles_analyzed": analysis.get("articles_analyzed", 0),
-            "reasoning": analysis.get("analysis_reasoning", ""),
-        }
-
         if sentiment > 2:
-            buy_stocks.append(stock_info)
+            buy_stocks.append(
+                {
+                    "company": company,
+                    "rationale": f"Positive sentiment ({sentiment}/5) with {confidence}% confidence",
+                }
+            )
         elif sentiment < -2:
-            sell_stocks.append(stock_info)
+            sell_stocks.append(
+                {
+                    "company": company,
+                    "rationale": f"Negative sentiment ({sentiment}/5) with {confidence}% confidence",
+                }
+            )
         else:
-            hold_stocks.append(stock_info)
+            hold_stocks.append(
+                {
+                    "company": company,
+                    "rationale": f"Neutral sentiment ({sentiment}/5) with {confidence}% confidence",
+                }
+            )
 
     # Sort by sentiment (highest first for buy, lowest first for sell)
-    buy_stocks.sort(key=lambda x: x["sentiment"], reverse=True)
-    sell_stocks.sort(key=lambda x: x["sentiment"])
+    buy_stocks.sort(key=lambda x: x["rationale"], reverse=True)
+    sell_stocks.sort(key=lambda x: x["rationale"])
 
-    return buy_stocks, hold_stocks, sell_stocks
+    return {
+        "buy_stocks": buy_stocks,
+        "hold_stocks": hold_stocks,
+        "sell_stocks": sell_stocks,
+        "market_trends": "Using fallback heuristic-based analysis due to LLM error",
+        "strong_opportunities": "None identified with fallback method",
+        "high_confidence_notes": "None identified with fallback method",
+    }
 
 
-def _display_results(
-    buy_stocks: List[Dict],
-    hold_stocks: List[Dict],
-    sell_stocks: List[Dict],
-    date_str: str,
-) -> None:
-    """Display categorized stocks in a formatted way."""
+def _display_results(portfolio_analysis: Dict[str, Any], date_str: str) -> None:
+    """Display portfolio analysis results in a formatted way."""
     click.echo("\n" + "=" * 80)
-    click.echo(f"STOCK ANALYSIS SUMMARY FOR {date_str}".center(80))
+    click.echo(f"PORTFOLIO ANALYSIS FOR {date_str}".center(80))
     click.echo("=" * 80)
 
     # BUY stocks
-    click.echo(f"\n📈 BUY STOCKS ({len(buy_stocks)} companies)")
+    buy_stocks = portfolio_analysis.get("buy_stocks", [])
+    click.echo(f"\n📈 BUY RECOMMENDATIONS ({len(buy_stocks)} companies)")
     click.echo("-" * 60)
     if buy_stocks:
         for stock in buy_stocks:
             click.echo(f"  {stock['company']}")
-            click.echo(
-                f"    Sentiment: {stock['sentiment']}/5 | Confidence: {stock['confidence']}% | Articles: {stock['articles_analyzed']}"
-            )
-            if stock["reasoning"]:
-                click.echo(f"    Reasoning: {stock['reasoning']}")
+            click.echo(f"    Rationale: {stock['rationale']}")
             click.echo()
     else:
         click.echo("  No strong buy recommendations found.")
 
     # HOLD stocks
-    click.echo(f"\n⏸️ HOLD STOCKS ({len(hold_stocks)} companies)")
+    hold_stocks = portfolio_analysis.get("hold_stocks", [])
+    click.echo(f"\n⏸️ HOLD RECOMMENDATIONS ({len(hold_stocks)} companies)")
     click.echo("-" * 60)
     if hold_stocks:
         for stock in hold_stocks:
             click.echo(f"  {stock['company']}")
-            click.echo(
-                f"    Sentiment: {stock['sentiment']}/5 | Confidence: {stock['confidence']}% | Articles: {stock['articles_analyzed']}"
-            )
+            click.echo(f"    Rationale: {stock['rationale']}")
             click.echo()
     else:
         click.echo("  No hold recommendations found.")
 
     # SELL stocks
-    click.echo(f"\n📉 SELL STOCKS ({len(sell_stocks)} companies)")
+    sell_stocks = portfolio_analysis.get("sell_stocks", [])
+    click.echo(f"\n📉 SELL RECOMMENDATIONS ({len(sell_stocks)} companies)")
     click.echo("-" * 60)
     if sell_stocks:
         for stock in sell_stocks:
             click.echo(f"  {stock['company']}")
-            click.echo(
-                f"    Sentiment: {stock['sentiment']}/5 | Confidence: {stock['confidence']}% | Articles: {stock['articles_analyzed']}"
-            )
-            if stock["reasoning"]:
-                click.echo(f"    Reasoning: {stock['reasoning']}")
+            click.echo(f"    Rationale: {stock['rationale']}")
             click.echo()
     else:
-        click.echo("  No strong sell recommendations found.")
+        click.echo("  No sell recommendations found.")
+
+    # Market trends and insights
+    click.echo("\n📊 MARKET INSIGHTS")
+    click.echo("-" * 60)
+    click.echo(f"Market Trends: {portfolio_analysis.get('market_trends', 'N/A')}")
+    click.echo(
+        f"Strong Opportunities: {portfolio_analysis.get('strong_opportunities', 'N/A')}"
+    )
+    click.echo(
+        f"High Confidence Notes: {portfolio_analysis.get('high_confidence_notes', 'N/A')}"
+    )
 
     # Summary
     total_stocks = len(buy_stocks) + len(hold_stocks) + len(sell_stocks)
