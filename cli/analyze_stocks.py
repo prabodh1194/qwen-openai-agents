@@ -10,8 +10,8 @@ import click
 import boto3
 from botocore.exceptions import ClientError
 from tqdm import tqdm
-from client.qwen import QwenClient, MODEL
 from smart_open import open
+from client.qwen import QwenClient, MODEL
 
 
 @click.command()  # type: ignore[misc]
@@ -43,8 +43,8 @@ def analyze_stocks(
         # Get all analysis files for the date
         if local_path:
             analyses = _get_local_analyses(local_path, date_str)
-            output_path: Path | None = (
-                Path(local_path) / "outputs" / date_str / "final_100_analysis.json"
+            output_path: str | None = (
+                f"{local_path}/outputs/{date_str}/final_100_analysis.json"
             )
         else:
             analyses = _get_s3_analyses(s3_bucket, s3_prefix, date_str)
@@ -111,10 +111,10 @@ def _get_s3_analyses(bucket: str, prefix: str, date_str: str) -> List[Dict]:
                     "final_100_analysis.json"
                 ):
                     try:
-                        obj_data = s3.get_object(Bucket=bucket, Key=key)
-                        content = obj_data["Body"].read().decode("utf-8")
-                        analysis = json.loads(content)
-                        analyses.append(analysis)
+                        s3_uri = f"s3://{bucket}/{key}"
+                        with open(s3_uri, "r") as f:
+                            analysis = json.load(f)
+                            analyses.append(analysis)
                     except Exception as e:
                         click.echo(f"Warning: Could not read {key}: {str(e)}")
 
@@ -163,13 +163,9 @@ def _get_local_analyses(base_path: str, date_str: str) -> List[Dict]:
         return []
 
 
-def _save_local_analysis(portfolio_analysis: Dict[str, Any], output_path: Path) -> None:
+def _save_local_analysis(portfolio_analysis: Dict[str, Any], output_path: str) -> None:
     """Save the portfolio analysis to a local file."""
     try:
-        # Create directory if it doesn't exist
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Save the analysis
         with open(output_path, "w") as f:
             json.dump(portfolio_analysis, f, indent=2, ensure_ascii=False)
 
@@ -183,18 +179,12 @@ def _save_s3_analysis(
 ) -> None:
     """Save the portfolio analysis to S3."""
     try:
-        s3 = boto3.client("s3")
-        s3_key = f"{prefix}/{date_str}/final_100_analysis.json"
+        s3_uri = f"s3://{bucket}/{prefix}/{date_str}/final_100_analysis.json"
 
-        # Convert to JSON string
-        json_data = json.dumps(portfolio_analysis, indent=2, ensure_ascii=False)
+        with open(s3_uri, "w") as f:
+            json.dump(portfolio_analysis, f, indent=2, ensure_ascii=False)
 
-        # Upload to S3
-        s3.put_object(
-            Bucket=bucket, Key=s3_key, Body=json_data, ContentType="application/json"
-        )
-
-        click.echo(f"Final analysis saved to: s3://{bucket}/{s3_key}")
+        click.echo(f"Final analysis saved to: {s3_uri}")
     except Exception as e:
         click.echo(f"Error saving S3 analysis: {str(e)}", err=True)
 
