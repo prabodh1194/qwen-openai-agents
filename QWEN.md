@@ -1,6 +1,29 @@
-# Qwen Configuration
+# Qwen Code Agent
 
-This project requires access to the Qwen API through an OpenAI-compatible interface.
+This project is a CLI tool that provides access to the Qwen API through an OpenAI-compatible interface, with specialized features for financial news analysis.
+
+## Features
+
+### BSE News Analysis
+- **Company News Scraping**: Automatically scrape recent news for BSE-listed companies using Google News RSS feeds
+- **Sentiment Analysis**: Analyze news articles to determine potential stock price impact with sentiment scores from -5 to +5
+- **Key Factor Extraction**: Identify key positive drivers and risk factors affecting companies
+- **Confidence Scoring**: Provides confidence levels based on the number of articles analyzed
+
+### Stock Analysis Summary
+- **Portfolio Analysis**: Analyze all stock analyses for a specific date and categorize stocks as Buy, Hold, or Sell
+- **Automated Categorization**: Classify stocks based on sentiment scores (Buy: >2, Hold: -2 to 2, Sell: <-2)
+- **S3 Integration**: Read analysis files directly from S3 or local directories
+- **Comprehensive Reporting**: Display detailed results with sentiment scores, confidence levels, and reasoning
+
+### Token Management
+- **Automatic Token Refresh**: Refresh Qwen API tokens using refresh tokens to maintain continuous access
+- **Token Expiration Monitoring**: Display token expiration information to help manage credentials
+
+### AWS Lambda Integration
+- **Batch Processing**: Process multiple companies' news analysis through AWS Lambda functions
+- **Async/Sync Execution**: Support for both asynchronous and synchronous Lambda invocations
+- **Processing Limits**: Option to limit the number of companies processed in a batch
 
 ## Credentials Setup
 
@@ -38,3 +61,29 @@ The project currently uses the `qwen3-coder-plus` model.
 ## Usage
 
 Once you've set up your credentials, the tool will automatically load them from `~/.qwen/oauth_creds.json` and use them to authenticate with the Qwen API.
+
+### CLI Commands
+
+1. **Analyze BSE News for a Company**:
+   ```bash
+   python main.py scrape-bse-news "Company Name"
+   ```
+
+2. **Refresh Qwen API Tokens**:
+   ```bash
+   python main.py refresh-qwen-token
+   ```
+
+3. **Invoke AWS Lambda for Batch Processing**:
+   ```bash
+   python main.py invoke-lambda [--async/--sync] [--limit N] [--quiet]
+   ```
+
+4. **Analyze All Stocks for a Date**:
+   ```bash
+   python main.py analyze-stocks [DATE] [--s3-bucket BUCKET] [--s3-prefix PREFIX] [--local-path PATH]
+   ```
+   - DATE: Date in YYYY-MM-DD format (defaults to today if not provided)
+   - --s3-bucket: S3 bucket name (defaults to "bse-news-analyzer-data")
+   - --s3-prefix: S3 prefix for outputs (defaults to "outputs")
+   - --local-path: Local path to read analyses from instead of S3

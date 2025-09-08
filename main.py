@@ -7,6 +7,7 @@ import click
 from cli.bse_news import scrape_bse_news
 from cli.invoke_lambda import invoke_lambda
 from cli.refresh_token import refresh_qwen_token
+from cli.analyze_stocks import analyze_stocks
 
 
 @click.group()  # type: ignore[misc]
@@ -18,6 +19,7 @@ def cli() -> None:
 cli.add_command(scrape_bse_news)
 cli.add_command(invoke_lambda)
 cli.add_command(refresh_qwen_token)
+cli.add_command(analyze_stocks)
 
 if __name__ == "__main__":
     cli()
