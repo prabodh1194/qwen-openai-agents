@@ -1,3 +1,10 @@
+# CODING STANDARDS
+
+1. USE smart_open.open for all file operations. It is s3 compatible.
+2. Avoid safe code. Fail very very fast.
+3. Use `abc | None` instead of Optional[abc]
+
+
 # Qwen Code Agent
 
 This project is a CLI tool that provides access to the Qwen API through an OpenAI-compatible interface, with specialized features for financial news analysis.

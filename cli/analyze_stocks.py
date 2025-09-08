@@ -11,6 +11,7 @@ import boto3
 from botocore.exceptions import ClientError
 from tqdm import tqdm
 from client.qwen import QwenClient, MODEL
+from smart_open import open
 
 
 @click.command()  # type: ignore[misc]
@@ -42,8 +43,12 @@ def analyze_stocks(
         # Get all analysis files for the date
         if local_path:
             analyses = _get_local_analyses(local_path, date_str)
+            output_path: Path | None = (
+                Path(local_path) / "outputs" / date_str / "final_100_analysis.json"
+            )
         else:
             analyses = _get_s3_analyses(s3_bucket, s3_prefix, date_str)
+            output_path = None  # We'll handle S3 saving separately
 
         if not analyses:
             click.echo("No analyses found for the specified date.")
@@ -67,6 +72,16 @@ def analyze_stocks(
 
         # Perform LLM-based analysis
         portfolio_analysis = _perform_llm_analysis(filtered_analyses, creds_path)
+
+        # Add metadata to the portfolio analysis
+        portfolio_analysis["analysis_date"] = date_str
+        portfolio_analysis["total_companies_analyzed"] = len(filtered_analyses)
+
+        # Save the final analysis
+        if local_path and output_path:
+            _save_local_analysis(portfolio_analysis, output_path)
+        else:
+            _save_s3_analysis(portfolio_analysis, s3_bucket, s3_prefix, date_str)
 
         # Display results
         _display_results(portfolio_analysis, date_str)
@@ -92,7 +107,9 @@ def _get_s3_analyses(bucket: str, prefix: str, date_str: str) -> List[Dict]:
             contents = response["Contents"]
             for obj in tqdm(contents, desc="Reading analysis files", unit="file"):
                 key = obj["Key"]
-                if key.endswith(".json"):
+                if key.endswith(".json") and not key.endswith(
+                    "final_100_analysis.json"
+                ):
                     try:
                         obj_data = s3.get_object(Bucket=bucket, Key=key)
                         content = obj_data["Body"].read().decode("utf-8")
@@ -122,6 +139,11 @@ def _get_local_analyses(base_path: str, date_str: str) -> List[Dict]:
             return []
 
         json_files = list(analyses_path.glob("*.json"))
+        # Filter out the final analysis file if it exists
+        json_files = [
+            f for f in json_files if not f.name.endswith("final_100_analysis.json")
+        ]
+
         analyses = []
 
         # Create a progress bar for reading files
@@ -139,6 +161,42 @@ def _get_local_analyses(base_path: str, date_str: str) -> List[Dict]:
     except Exception as e:
         click.echo(f"Error fetching local analyses: {str(e)}", err=True)
         return []
+
+
+def _save_local_analysis(portfolio_analysis: Dict[str, Any], output_path: Path) -> None:
+    """Save the portfolio analysis to a local file."""
+    try:
+        # Create directory if it doesn't exist
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Save the analysis
+        with open(output_path, "w") as f:
+            json.dump(portfolio_analysis, f, indent=2, ensure_ascii=False)
+
+        click.echo(f"Final analysis saved to: {output_path}")
+    except Exception as e:
+        click.echo(f"Error saving local analysis: {str(e)}", err=True)
+
+
+def _save_s3_analysis(
+    portfolio_analysis: Dict[str, Any], bucket: str, prefix: str, date_str: str
+) -> None:
+    """Save the portfolio analysis to S3."""
+    try:
+        s3 = boto3.client("s3")
+        s3_key = f"{prefix}/{date_str}/final_100_analysis.json"
+
+        # Convert to JSON string
+        json_data = json.dumps(portfolio_analysis, indent=2, ensure_ascii=False)
+
+        # Upload to S3
+        s3.put_object(
+            Bucket=bucket, Key=s3_key, Body=json_data, ContentType="application/json"
+        )
+
+        click.echo(f"Final analysis saved to: s3://{bucket}/{s3_key}")
+    except Exception as e:
+        click.echo(f"Error saving S3 analysis: {str(e)}", err=True)
 
 
 def _perform_llm_analysis(analyses: List[Dict], creds_path: str) -> Dict[str, Any]:
