@@ -10,7 +10,7 @@ import click
 import boto3
 from botocore.exceptions import ClientError
 from tqdm import tqdm
-from client.qwen import QwenClient
+from client.qwen import QwenClient, MODEL
 
 
 @click.command()  # type: ignore[misc]
@@ -212,7 +212,7 @@ Return a JSON object with the following structure:
         click.echo("Performing LLM-based analysis...")
         # Call LLM for analysis
         response = client.chat.completions.create(
-            model=client.qwen.MODEL,
+            model=MODEL,
             messages=[
                 {
                     "role": "system",
