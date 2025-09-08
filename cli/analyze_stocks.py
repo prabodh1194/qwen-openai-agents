@@ -29,8 +29,18 @@ from client.qwen import QwenClient, MODEL
     default="~/.qwen/oauth_creds.json",
     help="Path to credentials file",
 )  # type: ignore[misc]
+@click.option(
+    "--force-recompute",
+    is_flag=True,
+    help="Force recompute even if final analysis exists",
+)  # type: ignore[misc]
 def analyze_stocks(
-    date_str: str, s3_bucket: str, s3_prefix: str, local_path: str, creds_path: str
+    date_str: str,
+    s3_bucket: str,
+    s3_prefix: str,
+    local_path: str,
+    creds_path: str,
+    force_recompute: bool,
 ) -> None:
     """Analyze all stock analyses for a given date and categorize as buy/hold/sell using LLM."""
     try:
@@ -39,6 +49,25 @@ def analyze_stocks(
             date_str = datetime.now().strftime("%Y-%m-%d")
 
         click.echo(f"Analyzing stock analyses for date: {date_str}")
+
+        # Check if final analysis already exists
+        final_analysis = None
+        if not force_recompute:
+            if local_path:
+                final_analysis_path = (
+                    f"{local_path}/outputs/{date_str}/final_100_analysis.json"
+                )
+                final_analysis = _load_existing_analysis(final_analysis_path)
+            else:
+                final_analysis_path = (
+                    f"s3://{s3_bucket}/{s3_prefix}/{date_str}/final_100_analysis.json"
+                )
+                final_analysis = _load_existing_analysis(final_analysis_path)
+
+        if final_analysis:
+            click.echo("Reusing existing final analysis.")
+            _display_results(final_analysis, date_str)
+            return
 
         # Get all analysis files for the date
         if local_path:
@@ -89,6 +118,18 @@ def analyze_stocks(
     except Exception as e:
         click.echo(f"Error: {str(e)}", err=True)
         raise click.Abort()
+
+
+def _load_existing_analysis(file_path: str) -> Dict[str, Any] | None:
+    """Load existing final analysis if it exists."""
+    try:
+        with open(file_path, "r") as f:
+            analysis = json.load(f)
+            click.echo(f"Loaded existing analysis from: {file_path}")
+            return dict(analysis)
+    except Exception:
+        # File doesn't exist or couldn't be loaded, which is fine
+        return None
 
 
 def _get_s3_analyses(bucket: str, prefix: str, date_str: str) -> List[Dict]:
