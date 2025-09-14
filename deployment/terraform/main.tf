@@ -64,7 +64,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "lambda:InvokeFunction"
         ]
         Resource = [
-          aws_lambda_function.bse_news_analyzer.arn
+          "arn:aws:lambda:*:*:function:${var.lambda_function_name}*"
         ]
       }
     ]
