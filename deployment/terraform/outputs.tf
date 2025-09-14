@@ -18,6 +18,11 @@ output "lambda_creds_refresh_function_name" {
   value       = aws_lambda_function.creds_refresh.function_name
 }
 
+output "lambda_scheduled_invoke_function_name" {
+  description = "Name of the scheduled invoke Lambda function"
+  value       = aws_lambda_function.scheduled_invoke.function_name
+}
+
 output "s3_bucket_name" {
   description = "Name of the S3 data bucket"
   value       = aws_s3_bucket.data_bucket.bucket

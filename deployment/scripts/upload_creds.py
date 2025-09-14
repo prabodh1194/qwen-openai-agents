@@ -36,6 +36,23 @@ def upload_credentials_to_s3(bucket_name: str, region: str = "us-east-1") -> Non
 
     print(f"Outputs directory created at s3://{bucket_name}/outputs/")
 
+    # Upload stocks file
+    stocks_path = Path(__file__).parent.parent.parent / "stocks" / "stocks_100"
+    if stocks_path.exists():
+        with open(stocks_path, "r") as f:
+            stocks_content = f.read()
+
+        s3.put_object(
+            Bucket=bucket_name,
+            Key="stocks/stocks_100",
+            Body=stocks_content,
+            ContentType="text/plain",
+        )
+
+        print(f"Stocks file uploaded to s3://{bucket_name}/stocks/stocks_100")
+    else:
+        print(f"Warning: Stocks file not found at {stocks_path}")
+
 
 if __name__ == "__main__":
     import argparse

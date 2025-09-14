@@ -60,7 +60,11 @@ def build_lambda_package() -> Path:
 
         # Copy deployment lambda handlers
         lambda_dir = Path(__file__).parent.parent / "lambda"
-        lambda_handlers = ["lambda_handler.py", "refresh_creds_handler.py"]
+        lambda_handlers = [
+            "lambda_handler.py",
+            "refresh_creds_handler.py",
+            "scheduled_invoke_handler.py",
+        ]
         for handler in lambda_handlers:
             handler_path = lambda_dir / handler
             if handler_path.exists():

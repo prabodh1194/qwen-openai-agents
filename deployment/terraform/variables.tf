@@ -27,3 +27,15 @@ variable "lambda_memory_size" {
   type        = number
   default     = 512
 }
+
+variable "scheduled_invoke_schedule" {
+  description = "Schedule expression for scheduled invoke Lambda"
+  type        = string
+  default     = "cron(30 2 ? * * *)"
+}
+
+variable "scheduled_invoke_timeout" {
+  description = "Timeout for scheduled invoke Lambda function in seconds"
+  type        = number
+  default     = 900
+}

@@ -7,7 +7,9 @@ This directory contains deployment scripts and infrastructure code for deploying
 - **AWS Lambda**: Python function with S3 mountpoint
 - **S3 Mountpoint**: Maps S3 bucket to Lambda's `$HOME` directory
 - **Credentials**: Stored at `~/.qwen/oauth_creds.json` (mounted from S3)
+- **Stocks List**: Stored at `~/stocks/stocks_100` (mounted from S3)
 - **Outputs**: Saved to `outputs/` directory (mounted to S3)
+- **Scheduled Invoke**: Daily Lambda function that triggers analysis for all companies synchronously
 
 ## Deployment Steps
 
@@ -24,7 +26,7 @@ This directory contains deployment scripts and infrastructure code for deploying
 uv run deployment/scripts/build.py
 ```
 
-### 3. Upload Credentials to S3
+### 3. Upload Credentials and Stocks to S3
 
 ```bash
 uv run deployment/scripts/upload_creds.py --bucket your-bucket-name --region us-east-1
@@ -48,7 +50,12 @@ aws lambda invoke --function-name bse-news-analyzer --payload '{"company_name":"
 curl -X POST https://your-function-url.lambda-url.us-east-1.on.aws/ \
   -H "Content-Type: application/json" \
   -d '{"company_name": "Infosys"}'
+
+# Manually trigger the scheduled invoke function
+aws lambda invoke --function-name bse-news-analyzer-scheduled-invoke response.json
 ```
+
+The scheduled invoke function will automatically run daily and process all companies in your stocks list, storing the results in your S3 bucket.
 
 ## Scripts
 
@@ -56,7 +63,7 @@ curl -X POST https://your-function-url.lambda-url.us-east-1.on.aws/ \
 Builds the Lambda deployment package with all dependencies.
 
 ### upload_creds.py
-Uploads Qwen credentials to S3 for mountpoint access.
+Uploads Qwen credentials and stocks file to S3 for mountpoint access.
 
 ### deploy.py
 Deploys Terraform infrastructure.
@@ -80,10 +87,12 @@ deployment/
 │   ├── outputs.tf      # Output values
 │   └── providers.tf    # AWS provider config
 ├── lambda/             # Lambda-specific code
-│   └── lambda_handler.py # Lambda entry point
+│   ├── lambda_handler.py # Lambda entry point for single company analysis
+│   ├── refresh_creds_handler.py # Credentials refresh handler
+│   └── scheduled_invoke_handler.py # Scheduled invoke handler
 ├── scripts/            # Python deployment scripts
 │   ├── build.py        # Package builder
-│   ├── upload_creds.py # Credentials uploader
+│   ├── upload_creds.py # Credentials and stocks uploader
 │   └── deploy.py       # Terraform runner
 └── README.md          # This file
 ```
@@ -91,6 +100,10 @@ deployment/
 ## Environment Variables
 
 - `HOME`: Set to `/home/sbx_user1050` for S3 mountpoint compatibility
+
+## Scheduled Invoke Configuration
+
+The scheduled invoke function processes all companies in the stocks list daily at 8:00 AM IST using a CloudWatch EventBridge rule.
 
 ## Notes
 
