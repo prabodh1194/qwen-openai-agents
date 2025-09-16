@@ -365,6 +365,17 @@ class BSENewsAgent:
             f'"{company_name}" quarterly results guidance outlook forecast when:7d',
             # Regulatory/sector news
             f'"{company_name}" regulation policy government approval when:7d',
+
+                
+    # Additional fundamental queries
+    f'"{company_name}" cash flow debt financing liquidity bankruptcy when:7d',
+    f'"{company_name}" dividend buyback share repurchase when:7d',
+    f'"{company_name}" CEO CFO management executive leadership when:7d',
+    f'"{company_name}" market share competition competitive when:7d',
+    f'"{company_name}" product launch innovation patent R&D when:7d',
+    f'"{company_name}" expansion growth international market when:7d',
+    f'"{company_name}" layoffs hiring restructuring cost cutting when:7d',
+    f'"{company_name}" customer contract order backlog demand when:7d',
         ]
 
         print("=" * 60)
