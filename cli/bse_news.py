@@ -22,8 +22,8 @@ def scrape_bse_news(company_name: str) -> None:
         click.echo(f"Analyzing BSE news for: {company_name}")
         analysis = service.analyze_company(company_name)
 
-        # Save analysis to file (save all analyses, including placeholders for companies with no news)
-        filepath = service.save_analysis(analysis, "outputs")
+        # Save analysis to S3 (save all analyses, including placeholders for companies with no news)
+        filepath = service.save_analysis(analysis)
 
         if analysis["status"] == "success":
             # Display formatted results
