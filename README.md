@@ -46,6 +46,12 @@ Example:
 python main.py scrape-bse-news "Tata Consultancy Services"
 ```
 
+By default, if an analysis already exists for the current date in S3, the command will skip execution. To force re-analysis, use the `--force` flag:
+
+```bash
+python main.py scrape-bse-news --force "Company Name"
+```
+
 ## Project Structure
 
 - `client/`: Qwen client implementation

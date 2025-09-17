@@ -76,6 +76,11 @@ Once you've set up your credentials, the tool will automatically load them from 
    python main.py scrape-bse-news "Company Name"
    ```
 
+   By default, if an analysis already exists for the current date in S3, the command will skip execution. To force re-analysis, use the `--force` flag:
+   ```bash
+   python main.py scrape-bse-news --force "Company Name"
+   ```
+
 2. **Refresh Qwen API Tokens**:
    ```bash
    python main.py refresh-qwen-token
