@@ -49,6 +49,39 @@ class BSEAnalysisService:
         s3_uri = f"s3://{s3_bucket}"
         return self.agent.save_analysis_to_file(analysis, s3_uri)
 
+    def check_analysis_exists(
+        self, company_name: str, s3_bucket: str = "bse-news-analyzer-data"
+    ) -> bool:
+        """
+        Check if analysis already exists for the given company in S3.
+
+        Args:
+            company_name: Name of the company to check
+            s3_bucket: S3 bucket name
+
+        Returns:
+            True if analysis exists, False otherwise
+        """
+        from datetime import datetime
+        from smart_open import open
+        import json
+
+        # Generate the expected file path
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        s3_uri = f"s3://{s3_bucket}"
+        filename = self.agent._generate_filename(company_name)
+        file_path = f"{s3_uri}/outputs/{date_str}/{filename}"
+
+        # Try to open the file to check if it exists
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                # Try to parse JSON to ensure it's a valid analysis file
+                json.load(f)
+            return True
+        except Exception:
+            # File doesn't exist or is invalid
+            return False
+
     def format_console_response(self, analysis: dict[str, Any], filepath: str) -> str:
         """
         Format analysis results for console output.

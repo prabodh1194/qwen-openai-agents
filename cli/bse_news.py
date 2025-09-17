@@ -10,13 +10,26 @@ from services.bse_analysis_service import BSEAnalysisService
 
 @click.command()  # type: ignore[misc]
 @click.argument("company_name", type=str)  # type: ignore[misc]
-def scrape_bse_news(company_name: str) -> None:
+@click.option(
+    "--force", is_flag=True, help="Force re-analysis even if data exists in S3"
+)  # type: ignore[misc]
+def scrape_bse_news(company_name: str, force: bool) -> None:
     """Scrape and analyze BSE news for a given company."""
     try:
         # Initialize service
         click.echo("Initializing BSE analysis service...")
         service = BSEAnalysisService(str(Path.home() / ".qwen" / "oauth_creds.json"))
         click.echo("✓ Service initialized")
+
+        # Check if analysis already exists (unless force flag is used)
+        if not force:
+            click.echo(f"Checking if analysis already exists for: {company_name}")
+            if service.check_analysis_exists(company_name):
+                click.echo(
+                    f"✓ Analysis already exists for {company_name}. Skipping execution."
+                )
+                click.echo("Use --force to re-run analysis even if data exists.")
+                return
 
         # Perform analysis
         click.echo(f"Analyzing BSE news for: {company_name}")
