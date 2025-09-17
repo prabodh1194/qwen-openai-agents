@@ -33,18 +33,21 @@ class BSEAnalysisService:
         """
         return self.agent.analyze_company_news(company_name)
 
-    def save_analysis(self, analysis: dict[str, Any], output_uri: str) -> str:
+    def save_analysis(
+        self, analysis: dict[str, Any], s3_bucket: str = "bse-news-analyzer-data"
+    ) -> str:
         """
-        Save analysis results to file or URI.
+        Save analysis results to S3 URI.
 
         Args:
             analysis: Analysis results to save
-            output_uri: Optional URI for output (for Lambda with S3)
+            s3_bucket: S3 bucket name
 
         Returns:
-            Path or URI where analysis was saved
+            S3 URI where analysis was saved
         """
-        return self.agent.save_analysis_to_file(analysis, output_uri)
+        s3_uri = f"s3://{s3_bucket}"
+        return self.agent.save_analysis_to_file(analysis, s3_uri)
 
     def format_console_response(self, analysis: dict[str, Any], filepath: str) -> str:
         """
@@ -81,7 +84,7 @@ class BSEAnalysisService:
             for risk in analysis["key_risk_factors"]:
                 output.append(f"  • {risk}")
 
-        output.append(f"\nDetailed analysis saved to: {filepath}")
+        output.append(f"\nDetailed analysis saved to S3: {filepath}")
 
         return "\n".join(output)
 

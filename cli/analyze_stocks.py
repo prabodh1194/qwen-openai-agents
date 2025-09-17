@@ -3,7 +3,6 @@ CLI module for analyzing all stock analyses for a given date and categorizing th
 """
 import json
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Any
 
 import click
@@ -21,9 +20,6 @@ from client.qwen import QwenClient, MODEL
 )  # type: ignore[misc]
 @click.option("--s3-prefix", type=str, default="outputs", help="S3 prefix for outputs")  # type: ignore[misc]
 @click.option(
-    "--local-path", type=str, help="Local path to read analyses from instead of S3"
-)  # type: ignore[misc]
-@click.option(
     "--creds-path",
     type=str,
     default="~/.qwen/oauth_creds.json",
@@ -38,7 +34,6 @@ def analyze_stocks(
     date_str: str,
     s3_bucket: str,
     s3_prefix: str,
-    local_path: str,
     creds_path: str,
     force_recompute: bool,
 ) -> None:
@@ -53,16 +48,10 @@ def analyze_stocks(
         # Check if final analysis already exists
         final_analysis = None
         if not force_recompute:
-            if local_path:
-                final_analysis_path = (
-                    f"{local_path}/outputs/{date_str}/final_100_analysis.json"
-                )
-                final_analysis = _load_existing_analysis(final_analysis_path)
-            else:
-                final_analysis_path = (
-                    f"s3://{s3_bucket}/{s3_prefix}/{date_str}/final_100_analysis.json"
-                )
-                final_analysis = _load_existing_analysis(final_analysis_path)
+            final_analysis_path = (
+                f"s3://{s3_bucket}/{s3_prefix}/{date_str}/final_100_analysis.json"
+            )
+            final_analysis = _load_existing_analysis(final_analysis_path)
 
         if final_analysis:
             click.echo("Reusing existing final analysis.")
@@ -70,14 +59,7 @@ def analyze_stocks(
             return
 
         # Get all analysis files for the date
-        if local_path:
-            analyses = _get_local_analyses(local_path, date_str)
-            output_path: str | None = (
-                f"{local_path}/outputs/{date_str}/final_100_analysis.json"
-            )
-        else:
-            analyses = _get_s3_analyses(s3_bucket, s3_prefix, date_str)
-            output_path = None  # We'll handle S3 saving separately
+        analyses = _get_s3_analyses(s3_bucket, s3_prefix, date_str)
 
         if not analyses:
             click.echo("No analyses found for the specified date.")
@@ -106,11 +88,8 @@ def analyze_stocks(
         portfolio_analysis["analysis_date"] = date_str
         portfolio_analysis["total_companies_analyzed"] = len(filtered_analyses)
 
-        # Save the final analysis
-        if local_path and output_path:
-            _save_local_analysis(portfolio_analysis, output_path)
-        else:
-            _save_s3_analysis(portfolio_analysis, s3_bucket, s3_prefix, date_str)
+        # Save the final analysis to S3
+        _save_s3_analysis(portfolio_analysis, s3_bucket, s3_prefix, date_str)
 
         # Display results
         _display_results(portfolio_analysis, date_str)
@@ -168,51 +147,6 @@ def _get_s3_analyses(bucket: str, prefix: str, date_str: str) -> List[Dict]:
     except Exception as e:
         click.echo(f"Error fetching S3 analyses: {str(e)}", err=True)
         return []
-
-
-def _get_local_analyses(base_path: str, date_str: str) -> List[Dict]:
-    """Get all analysis files from local directory for a given date."""
-    try:
-        analyses_path = Path(base_path) / "outputs" / date_str
-
-        if not analyses_path.exists():
-            click.echo(f"Local path does not exist: {analyses_path}")
-            return []
-
-        json_files = list(analyses_path.glob("*.json"))
-        # Filter out the final analysis file if it exists
-        json_files = [
-            f for f in json_files if not f.name.endswith("final_100_analysis.json")
-        ]
-
-        analyses = []
-
-        # Create a progress bar for reading files
-        for json_file in tqdm(json_files, desc="Reading analysis files", unit="file"):
-            try:
-                with open(json_file, "r") as f:
-                    analysis = json.load(f)
-                    analyses.append(analysis)
-            except Exception as e:
-                click.echo(f"Warning: Could not read {json_file}: {str(e)}")
-
-        click.echo(f"Found {len(analyses)} analyses in local path")
-        return analyses
-
-    except Exception as e:
-        click.echo(f"Error fetching local analyses: {str(e)}", err=True)
-        return []
-
-
-def _save_local_analysis(portfolio_analysis: Dict[str, Any], output_path: str) -> None:
-    """Save the portfolio analysis to a local file."""
-    try:
-        with open(output_path, "w") as f:
-            json.dump(portfolio_analysis, f, indent=2, ensure_ascii=False)
-
-        click.echo(f"Final analysis saved to: {output_path}")
-    except Exception as e:
-        click.echo(f"Error saving local analysis: {str(e)}", err=True)
 
 
 def _save_s3_analysis(

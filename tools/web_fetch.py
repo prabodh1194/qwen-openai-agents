@@ -708,17 +708,17 @@ Be objective and focus on quantifiable business impact rather than general marke
         filename = filename.strip("_")
         return f"{filename}.json"
 
-    def save_analysis_to_file(
-        self, analysis_data: dict[str, Any], output_uri: str
-    ) -> str:
-        """Save analysis results to dated directory or specified URI"""
+    def save_analysis_to_file(self, analysis_data: dict[str, Any], s3_uri: str) -> str:
+        """Save analysis results to dated directory in S3"""
 
         date_str = analysis_data.get(
             "analysis_date", datetime.now().strftime("%Y-%m-%d")
         )
-        fn = f"{output_uri}/outputs/{date_str}/{self._generate_filename(analysis_data['company'])}"
+        # Ensure s3_uri doesn't end with a slash
+        s3_base = s3_uri.rstrip("/")
+        fn = f"{s3_base}/outputs/{date_str}/{self._generate_filename(analysis_data['company'])}"
 
-        # If output_uri is provided, save directly to that URI (could be S3 or local)
+        # Save directly to S3 URI
         with open(fn, "w", encoding="utf-8") as f:
             json.dump(analysis_data, f, indent=2, ensure_ascii=False)
-        return output_uri
+        return s3_uri
