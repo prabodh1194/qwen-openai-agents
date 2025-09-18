@@ -731,7 +731,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "click" },
     { name = "mypy" },
     { name = "ruff" },
     { name = "types-beautifulsoup4" },
@@ -755,7 +754,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "click", extras = ["typing"], specifier = ">=8.2.1" },
     { name = "mypy", specifier = ">=1.17.1" },
     { name = "ruff", specifier = ">=0.12.11" },
     { name = "types-beautifulsoup4", specifier = ">=4.12.0.20250516" },
