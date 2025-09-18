@@ -721,4 +721,4 @@ Be objective and focus on quantifiable business impact rather than general marke
         # Save directly to S3 URI
         with open(fn, "w", encoding="utf-8") as f:
             json.dump(analysis_data, f, indent=2, ensure_ascii=False)
-        return s3_uri
+        return fn

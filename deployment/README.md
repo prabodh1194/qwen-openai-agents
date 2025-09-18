@@ -9,7 +9,6 @@ This directory contains deployment scripts and infrastructure code for deploying
 - **Credentials**: Stored at `~/.qwen/oauth_creds.json` (mounted from S3)
 - **Stocks List**: Stored at `~/stocks/stocks_100` (mounted from S3)
 - **Outputs**: Saved to `outputs/` directory (mounted to S3)
-- **Scheduled Invoke**: Daily Lambda function that triggers analysis for all companies synchronously
 
 ## Deployment Steps
 
@@ -50,12 +49,7 @@ aws lambda invoke --function-name bse-news-analyzer --payload '{"company_name":"
 curl -X POST https://your-function-url.lambda-url.us-east-1.on.aws/ \
   -H "Content-Type: application/json" \
   -d '{"company_name": "Infosys"}'
-
-# Manually trigger the scheduled invoke function
-aws lambda invoke --function-name bse-news-analyzer-scheduled-invoke response.json
 ```
-
-The scheduled invoke function will automatically run daily and process all companies in your stocks list, storing the results in your S3 bucket.
 
 ## Scripts
 
@@ -88,8 +82,7 @@ deployment/
 │   └── providers.tf    # AWS provider config
 ├── lambda/             # Lambda-specific code
 │   ├── lambda_handler.py # Lambda entry point for single company analysis
-│   ├── refresh_creds_handler.py # Credentials refresh handler
-│   └── scheduled_invoke_handler.py # Scheduled invoke handler
+│   └── refresh_creds_handler.py # Credentials refresh handler
 ├── scripts/            # Python deployment scripts
 │   ├── build.py        # Package builder
 │   ├── upload_creds.py # Credentials and stocks uploader
@@ -100,10 +93,6 @@ deployment/
 ## Environment Variables
 
 - `HOME`: Set to `/home/sbx_user1050` for S3 mountpoint compatibility
-
-## Scheduled Invoke Configuration
-
-The scheduled invoke function processes all companies in the stocks list daily at 8:00 AM IST using a CloudWatch EventBridge rule.
 
 ## Notes
 

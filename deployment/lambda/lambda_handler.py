@@ -49,10 +49,10 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
         # Save to S3
         s3_output_uri = f"s3://{s3_bucket}"
-        service.save_analysis(analysis, s3_output_uri)
+        saved_location = service.save_analysis(analysis, s3_output_uri)
 
-        print(f"Analysis saved to: {s3_output_uri}")
-        analysis["s3_location"] = s3_output_uri
+        print(f"Analysis saved to: {saved_location}")
+        analysis["s3_location"] = saved_location
 
         # Return formatted API response
         return service.format_api_response(analysis, analysis.get("s3_location"))

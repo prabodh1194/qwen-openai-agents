@@ -731,10 +731,12 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "click" },
     { name = "mypy" },
     { name = "ruff" },
     { name = "types-beautifulsoup4" },
     { name = "types-boto3" },
+    { name = "types-click" },
     { name = "types-requests" },
     { name = "types-tqdm" },
 ]
@@ -753,10 +755,12 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "click", extras = ["typing"], specifier = ">=8.2.1" },
     { name = "mypy", specifier = ">=1.17.1" },
     { name = "ruff", specifier = ">=0.12.11" },
     { name = "types-beautifulsoup4", specifier = ">=4.12.0.20250516" },
     { name = "types-boto3", specifier = ">=1.40.25" },
+    { name = "types-click", specifier = ">=7.1.8" },
     { name = "types-requests", specifier = ">=2.32.4.20250809" },
     { name = "types-tqdm", specifier = ">=4.67.0.20250809" },
 ]
@@ -912,6 +916,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1b/25/d70eac5a5440f9e7c283da6473e474e9e868715e2faaa61a724d260f2464/types_boto3-1.40.25.tar.gz", hash = "sha256:c7676782544162b239d3d6076bcb48f11d95b7de8fef27e90f1ed31f080dc692", size = 101388, upload-time = "2025-09-05T19:26:11.45Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/53/51/d4809bc4f8635670f0da673c4f65b42a18b95a5679299f1a6b40c6f4c6bb/types_boto3-1.40.25-py3-none-any.whl", hash = "sha256:20476032f294ff3750587601d59af32269b2e284a6e4b1670d3f936687924814", size = 69665, upload-time = "2025-09-05T19:26:07.585Z" },
+]
+
+[[package]]
+name = "types-click"
+version = "7.1.8"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/00/ff/0e6a56108d45c80c61cdd4743312d0304d8192482aea4cce96c554aaa90d/types-click-7.1.8.tar.gz", hash = "sha256:b6604968be6401dc516311ca50708a0a28baa7a0cb840efd7412f0dbbff4e092", size = 10015, upload-time = "2021-11-23T12:28:01.701Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/ad/607454a5f991c5b3e14693a7113926758f889138371058a5f72f567fa131/types_click-7.1.8-py3-none-any.whl", hash = "sha256:8cb030a669e2e927461be9827375f83c16b8178c365852c060a34e24871e7e81", size = 12929, upload-time = "2021-11-23T12:27:59.493Z" },
 ]
 
 [[package]]

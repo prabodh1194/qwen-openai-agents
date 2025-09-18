@@ -8,11 +8,11 @@ import click
 from services.bse_analysis_service import BSEAnalysisService
 
 
-@click.command()  # type: ignore[misc]
-@click.argument("company_name", type=str)  # type: ignore[misc]
+@click.command()
+@click.argument("company_name", type=str)
 @click.option(
     "--force", is_flag=True, help="Force re-analysis even if data exists in S3"
-)  # type: ignore[misc]
+)
 def scrape_bse_news(company_name: str, force: bool) -> None:
     """Scrape and analyze BSE news for a given company."""
     try:
@@ -36,7 +36,7 @@ def scrape_bse_news(company_name: str, force: bool) -> None:
         analysis = service.analyze_company(company_name)
 
         # Save analysis to S3 (save all analyses, including placeholders for companies with no news)
-        filepath = service.save_analysis(analysis)
+        filepath = service.save_analysis(analysis, "s3://bse-news-analyzer-data")
 
         if analysis["status"] == "success":
             # Display formatted results

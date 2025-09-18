@@ -33,9 +33,7 @@ class BSEAnalysisService:
         """
         return self.agent.analyze_company_news(company_name)
 
-    def save_analysis(
-        self, analysis: dict[str, Any], s3_bucket: str = "bse-news-analyzer-data"
-    ) -> str:
+    def save_analysis(self, analysis: dict[str, Any], s3_bucket: str) -> str:
         """
         Save analysis results to S3 URI.
 
@@ -46,8 +44,7 @@ class BSEAnalysisService:
         Returns:
             S3 URI where analysis was saved
         """
-        s3_uri = f"s3://{s3_bucket}"
-        return self.agent.save_analysis_to_file(analysis, s3_uri)
+        return self.agent.save_analysis_to_file(analysis, s3_bucket)
 
     def check_analysis_exists(
         self, company_name: str, s3_bucket: str = "bse-news-analyzer-data"
