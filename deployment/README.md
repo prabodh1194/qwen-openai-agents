@@ -34,7 +34,7 @@ uv run deployment/scripts/upload_creds.py --bucket your-bucket-name --region us-
 ### 4. Deploy Infrastructure
 
 ```bash
-make deploy
+uv run deployment/scripts/deploy.py
 ```
 
 ### 5. Test the Function
@@ -70,24 +70,6 @@ The Terraform configuration creates:
 - IAM role with S3 permissions
 - Lambda function with S3 mountpoint
 - Lambda Function URL (optional)
-
-## File Structure
-
-```
-deployment/
-├── terraform/           # Infrastructure as Code
-│   ├── main.tf         # Main resources
-│   ├── variables.tf    # Configuration variables
-│   ├── outputs.tf      # Output values
-│   └── providers.tf    # AWS provider config
-├── lambda/             # Lambda-specific code
-│   ├── lambda_handler.py # Lambda entry point for single company analysis
-│   └── refresh_creds_handler.py # Credentials refresh handler
-├── scripts/            # Python deployment scripts
-│   ├── build.py        # Package builder
-│   ├── upload_creds.py # Credentials and stocks uploader
-└── README.md          # This file
-```
 
 ## Environment Variables
 

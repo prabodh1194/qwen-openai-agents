@@ -1,10 +1,9 @@
 """
 AWS Lambda handler for BSE News Analyzer with smart_open integration.
 """
-import os
 from typing import Any
 
-# Import from the main application
+import cli.bse_news
 from services.bse_analysis_service import BSEAnalysisService
 
 
@@ -16,55 +15,32 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     {
         "company_name": "Company Name",
         "output_format": "json"  # Optional: "json" or "text"
+        "force": false  # Optional: true or false
     }
     """
+    # Extract company name from event
+    company_name = event.get("company_name")
+
+    if not company_name:
+        error_analysis = {
+            "status": "error",
+            "display_message": "company_name parameter is required",
+        }
+        return BSEAnalysisService.format_api_response(error_analysis)
+
+    # Get force parameter from event, default to True for Lambda
+    force = event.get("force", False)
 
     try:
-        # Extract company name from event
-        company_name = event.get("company_name") or event.get(
-            "queryStringParameters", {}
-        ).get("company_name")
-
-        if not company_name:
-            error_analysis = {
-                "status": "error",
-                "display_message": "company_name parameter is required",
-            }
-            return BSEAnalysisService.format_api_response(error_analysis)
-
-        print(f"Analyzing BSE news for: {company_name}")
-
-        # Get S3 bucket from environment
-        s3_bucket = os.environ.get("S3_BUCKET_NAME", "bse-news-analyzer-data")
-
-        # Initialize service with S3 credentials URI
-        creds_uri = f"s3://{s3_bucket}/.qwen/oauth_creds.json"
-        service = BSEAnalysisService(creds_uri=creds_uri)
-
-        # Perform analysis
-        analysis = service.analyze_company(company_name)
-
-        # Save analysis to S3 (save all analyses, including placeholders for companies with no news)
-        # Generate filename using the shared method
-
-        # Save to S3
-        s3_output_uri = f"s3://{s3_bucket}"
-        saved_location = service.save_analysis(analysis, s3_output_uri)
-
-        print(f"Analysis saved to: {saved_location}")
-        analysis["s3_location"] = saved_location
+        # Call the CLI function directly
+        analysis = cli.bse_news.scrape_bse_news(company_name, force)
 
         # Return formatted API response
-        return service.format_api_response(analysis, analysis.get("s3_location"))
+        return BSEAnalysisService.format_api_response(
+            analysis, analysis.get("s3_location")
+        )
 
     except Exception as e:
-        print(f"Error in Lambda function: {str(e)}")
-
         # Return error response
-        # Get S3 bucket from environment
-        s3_bucket = os.environ.get("S3_BUCKET_NAME", "bse-news-analyzer-data")
-        # Initialize service with S3 credentials URI even for error handling
-        creds_uri = f"s3://{s3_bucket}/.qwen/oauth_creds.json"
-        service = BSEAnalysisService(creds_uri=creds_uri)
         error_analysis = {"status": "error", "display_message": str(e)}
-        return service.format_api_response(error_analysis)
+        return BSEAnalysisService.format_api_response(error_analysis)

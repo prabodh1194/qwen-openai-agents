@@ -1,4 +1,3 @@
-
 # S3 Bucket for mountpoint
 resource "aws_s3_bucket" "data_bucket" {
   bucket = var.s3_bucket_name
@@ -8,6 +7,33 @@ resource "aws_s3_bucket_versioning" "data_bucket" {
   bucket = aws_s3_bucket.data_bucket.id
   versioning_configuration {
     status = "Enabled"
+  }
+}
+
+# DynamoDB Table for tracking BSE news scrape results
+resource "aws_dynamodb_table" "bse_news_scrape_tracker" {
+  name         = "${var.lambda_function_name}-tracker"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "company_name"
+  range_key    = "created_at"
+
+  attribute {
+    name = "company_name"
+    type = "S"
+  }
+
+  attribute {
+    name = "created_at"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+
+  tags = {
+    Name = "${var.lambda_function_name}-tracker"
   }
 }
 
@@ -66,6 +92,18 @@ resource "aws_iam_role_policy" "lambda_policy" {
         Resource = [
           "arn:aws:lambda:*:*:function:${var.lambda_function_name}*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan"
+        ]
+        Resource = aws_dynamodb_table.bse_news_scrape_tracker.arn
       }
     ]
   })
@@ -85,60 +123,15 @@ resource "aws_lambda_function" "bse_news_analyzer" {
 
   environment {
     variables = {
-      S3_BUCKET_NAME = var.s3_bucket_name,
-      PYTHONPATH     = "/var/task/packages"
+      S3_BUCKET_NAME      = var.s3_bucket_name,
+      PYTHONPATH          = "/var/task/packages",
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.bse_news_scrape_tracker.name
     }
   }
 
   depends_on = [
     aws_iam_role_policy.lambda_policy
   ]
-}
-
-# Lambda Function - Credentials Refresh
-resource "aws_lambda_function" "creds_refresh" {
-  function_name = "${var.lambda_function_name}-creds-refresh"
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "refresh_creds_handler.lambda_handler"
-  runtime       = "python3.13"
-  timeout       = 300 # 5 minutes
-  memory_size   = 128
-
-  filename         = "${path.module}/../../lambda-package.zip"
-  source_code_hash = filebase64sha256("${path.module}/../../lambda-package.zip")
-
-  environment {
-    variables = {
-      S3_BUCKET_NAME = var.s3_bucket_name,
-      PYTHONPATH     = "/var/task/packages"
-    }
-  }
-
-  depends_on = [
-    aws_iam_role_policy.lambda_policy
-  ]
-}
-
-# EventBridge Rule for 5-hour credential refresh
-resource "aws_cloudwatch_event_rule" "creds_refresh_schedule" {
-  name                = "${var.lambda_function_name}-creds-refresh-5h"
-  description         = "Trigger credentials refresh every 5 hours"
-  schedule_expression = "rate(5 hours)"
-}
-
-# EventBridge Target for credentials refresh Lambda
-resource "aws_cloudwatch_event_target" "creds_refresh_target" {
-  rule = aws_cloudwatch_event_rule.creds_refresh_schedule.name
-  arn  = aws_lambda_function.creds_refresh.arn
-}
-
-# Lambda Permission for EventBridge
-resource "aws_lambda_permission" "allow_eventbridge_creds_refresh" {
-  statement_id  = "AllowExecutionFromEventBridge"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.creds_refresh.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.creds_refresh_schedule.arn
 }
 
 # Lambda Function URL

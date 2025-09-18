@@ -3,9 +3,133 @@ Shared service layer for BSE news analysis that eliminates duplication
 between CLI and Lambda implementations.
 """
 import json
+import os
 from typing import Any
 from client.qwen import QwenClient
 from tools.web_fetch import BSENewsAgent, ApprovalMode
+
+
+def normalize_company_name(company_name: str) -> str:
+    """
+    Normalize company name for use as DynamoDB partition key.
+
+    Args:
+        company_name: Original company name
+
+    Returns:
+        Normalized company name
+    """
+    # Convert to lowercase and remove extra whitespace
+    return " ".join(company_name.lower().split())
+
+
+def track_scrape_result(
+    company_name: str, success: bool, table_name: str | None = None
+) -> None:
+    """
+    Track the result of a BSE news scrape in DynamoDB.
+
+    Args:
+        company_name: Name of the company that was analyzed
+        success: Whether the analysis was successful
+        table_name: Optional DynamoDB table name (for Lambda environment)
+    """
+    # If no table name provided, try to get from environment (Lambda case)
+    if not table_name:
+        table_name = os.environ.get("DYNAMODB_TABLE_NAME")
+
+    # If still no table name, skip tracking (CLI case outside Lambda)
+    if not table_name:
+        return
+
+    try:
+        import boto3
+        from datetime import datetime, timedelta
+
+        # Initialize DynamoDB client
+        dynamodb = boto3.resource(
+            "dynamodb", region_name=os.environ.get("AWS_REGION", "us-east-1")
+        )
+        table = dynamodb.Table(table_name)
+
+        # Normalize company name
+        normalized_name = normalize_company_name(company_name)
+
+        # Create ISO timestamp
+        created_at = datetime.utcnow().isoformat() + "Z"
+
+        # Calculate TTL (7 days from now)
+        ttl = int((datetime.utcnow() + timedelta(days=7)).timestamp())
+
+        # Put item in DynamoDB
+        table.put_item(
+            Item={
+                "company_name": normalized_name,
+                "created_at": created_at,
+                "success": success,
+                "ttl": ttl,
+            }
+        )
+
+    except Exception:
+        # We don't want to fail the entire function if DynamoDB tracking fails
+        pass
+
+
+def analyze_company(
+    company_name: str, s3_bucket: str | None = None, force: bool = False
+) -> dict[str, Any]:
+    """
+    Analyze BSE news for a company.
+
+    This function is used by both CLI and Lambda implementations
+    to ensure identical functionality including:
+    - Checking if analysis already exists (unless force=True)
+    - Performing the analysis
+    - Saving results to S3
+    - Tracking results in DynamoDB (when table_name is provided)
+
+    Args:
+        company_name: Name of the company to analyze
+        s3_bucket: Optional S3 bucket name for saving results
+        force: Whether to force re-analysis even if data exists
+
+    Returns:
+        Analysis results dictionary
+    """
+    # Initialize service with S3 credentials (same for both CLI and Lambda)
+    service = BSEAnalysisService("s3://bse-news-analyzer-data/.qwen/oauth_creds.json")
+
+    # Check if analysis already exists (unless force flag is used)
+    if not force and s3_bucket:
+        # Extract bucket name from s3:// URL
+        bucket_name = (
+            s3_bucket.replace("s3://", "")
+            if s3_bucket.startswith("s3://")
+            else s3_bucket
+        )
+        if service.check_analysis_exists(company_name, bucket_name):
+            return {
+                "status": "skipped",
+                "display_message": f"Analysis already exists for {company_name}. Use force to re-run.",
+                "company": company_name,
+            }
+
+    # Perform analysis
+    analysis = service.analyze_company(company_name)
+
+    # Save analysis if S3 bucket is provided
+    if s3_bucket:
+        # Extract bucket name from s3:// URL
+        bucket_name = (
+            s3_bucket.replace("s3://", "")
+            if s3_bucket.startswith("s3://")
+            else s3_bucket
+        )
+        saved_location = service.save_analysis(analysis, bucket_name)
+        analysis["s3_location"] = saved_location
+
+    return analysis
 
 
 class BSEAnalysisService:
@@ -79,7 +203,8 @@ class BSEAnalysisService:
             # File doesn't exist or is invalid
             return False
 
-    def format_console_response(self, analysis: dict[str, Any], filepath: str) -> str:
+    @staticmethod
+    def format_console_response(analysis: dict[str, Any], filepath: str) -> str:
         """
         Format analysis results for console output.
 
