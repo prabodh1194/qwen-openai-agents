@@ -7,11 +7,12 @@ build:
 
 # Deploy Lambda infrastructure to AWS with S3 storage
 deploy: build
-	AWS_PROFILE=personal-aws uv run deployment/scripts/deploy.py
+	tofu -chdir=deployment/terraform init  -input=false
+	tofu -chdir=deployment/terraform apply -auto-approve -input=false
 
 # Upload credentials and setup S3 bucket for mountpoint
 setup-s3:
-	AWS_PROFILE=personal-aws uv run deployment/scripts/upload_creds.py --bucket bse-news-analyzer-data
+	uv run deployment/scripts/upload_creds.py --bucket bse-news-analyzer-data
 
 # Help target
 help:

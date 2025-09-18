@@ -34,7 +34,7 @@ uv run deployment/scripts/upload_creds.py --bucket your-bucket-name --region us-
 ### 4. Deploy Infrastructure
 
 ```bash
-uv run deployment/scripts/deploy.py
+make deploy
 ```
 
 ### 5. Test the Function
@@ -86,7 +86,6 @@ deployment/
 ├── scripts/            # Python deployment scripts
 │   ├── build.py        # Package builder
 │   ├── upload_creds.py # Credentials and stocks uploader
-│   └── deploy.py       # Terraform runner
 └── README.md          # This file
 ```
 

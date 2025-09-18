@@ -88,7 +88,7 @@ def main() -> bool:
 
     if bucket_created and table_created:
         print("Terraform backend resources created successfully!")
-        print("You can now run: uv run deployment/scripts/deploy.py")
+        print("You can now run: make deploy")
         return True
     else:
         print("Failed to create Terraform backend resources")
