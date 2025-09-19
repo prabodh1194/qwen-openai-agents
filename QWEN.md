@@ -23,10 +23,6 @@ This project is a CLI tool that provides access to the Qwen API through an OpenA
 - **S3 Integration**: Read analysis files directly from S3 or local directories
 - **Comprehensive Reporting**: Display detailed results with sentiment scores, confidence levels, and reasoning
 
-### Token Management
-- **Automatic Token Refresh**: Refresh Qwen API tokens using refresh tokens to maintain continuous access
-- **Token Expiration Monitoring**: Display token expiration information to help manage credentials
-
 ### AWS Lambda Integration
 - **Batch Processing**: Process multiple companies' news analysis through AWS Lambda functions
 - **Async/Sync Execution**: Support for both asynchronous and synchronous Lambda invocations
@@ -81,17 +77,12 @@ Once you've set up your credentials, the tool will automatically load them from 
    python main.py scrape-bse-news --force "Company Name"
    ```
 
-2. **Refresh Qwen API Tokens**:
-   ```bash
-   python main.py refresh-qwen-token
-   ```
-
-3. **Invoke AWS Lambda for Batch Processing**:
+2. **Invoke AWS Lambda for Batch Processing**:
    ```bash
    python main.py invoke-lambda [--async/--sync] [--limit N] [--quiet]
    ```
 
-4. **Analyze All Stocks for a Date**:
+3. **Analyze All Stocks for a Date**:
    ```bash
    python main.py analyze-stocks [DATE] [--s3-bucket BUCKET] [--s3-prefix PREFIX] [--local-path PATH]
    ```

@@ -77,7 +77,7 @@ def track_scrape_result(
 
 
 def analyze_company(
-    company_name: str, s3_bucket: str | None = None, force: bool = False
+    company_name: str, s3_bucket: str, force: bool = False
 ) -> dict[str, Any]:
     """
     Analyze BSE news for a company.
@@ -97,37 +97,23 @@ def analyze_company(
     Returns:
         Analysis results dictionary
     """
-    # Initialize service with S3 credentials (same for both CLI and Lambda)
-    service = BSEAnalysisService("s3://bse-news-analyzer-data/.qwen/oauth_creds.json")
 
     # Check if analysis already exists (unless force flag is used)
-    if not force and s3_bucket:
-        # Extract bucket name from s3:// URL
-        bucket_name = (
-            s3_bucket.replace("s3://", "")
-            if s3_bucket.startswith("s3://")
-            else s3_bucket
-        )
-        if service.check_analysis_exists(company_name, bucket_name):
-            return {
-                "status": "skipped",
-                "display_message": f"Analysis already exists for {company_name}. Use force to re-run.",
-                "company": company_name,
-            }
+    if not force and BSEAnalysisService.check_analysis_exists(company_name, s3_bucket):
+        return {
+            "status": "skipped",
+            "display_message": f"Analysis already exists for {company_name}. Use force to re-run.",
+            "company": company_name,
+        }
+
+    # Initialize service with S3 credentials (same for both CLI and Lambda)
+    service = BSEAnalysisService("s3://bse-news-analyzer-data/.qwen/oauth_creds.json")
 
     # Perform analysis
     analysis = service.analyze_company(company_name)
 
-    # Save analysis if S3 bucket is provided
-    if s3_bucket:
-        # Extract bucket name from s3:// URL
-        bucket_name = (
-            s3_bucket.replace("s3://", "")
-            if s3_bucket.startswith("s3://")
-            else s3_bucket
-        )
-        saved_location = service.save_analysis(analysis, bucket_name)
-        analysis["s3_location"] = saved_location
+    saved_location = service.save_analysis(analysis, s3_bucket)
+    analysis["s3_location"] = saved_location
 
     return analysis
 
@@ -170,9 +156,8 @@ class BSEAnalysisService:
         """
         return self.agent.save_analysis_to_file(analysis, s3_bucket)
 
-    def check_analysis_exists(
-        self, company_name: str, s3_bucket: str = "bse-news-analyzer-data"
-    ) -> bool:
+    @staticmethod
+    def check_analysis_exists(company_name: str, s3_bucket: str) -> bool:
         """
         Check if analysis already exists for the given company in S3.
 
@@ -189,9 +174,8 @@ class BSEAnalysisService:
 
         # Generate the expected file path
         date_str = datetime.now().strftime("%Y-%m-%d")
-        s3_uri = f"s3://{s3_bucket}"
-        filename = self.agent._generate_filename(company_name)
-        file_path = f"{s3_uri}/outputs/{date_str}/{filename}"
+        filename = BSENewsAgent._generate_filename(company_name)
+        file_path = f"{s3_bucket}/outputs/{date_str}/{filename}"
 
         # Try to open the file to check if it exists
         try:
@@ -199,8 +183,9 @@ class BSEAnalysisService:
                 # Try to parse JSON to ensure it's a valid analysis file
                 json.load(f)
             return True
-        except Exception:
+        except Exception as e:
             # File doesn't exist or is invalid
+            print(e)
             return False
 
     @staticmethod

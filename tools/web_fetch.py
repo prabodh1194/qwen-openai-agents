@@ -698,7 +698,8 @@ Be objective and focus on quantifiable business impact rather than general marke
 
         return unique_articles
 
-    def _generate_filename(self, company_name: str) -> str:
+    @staticmethod
+    def _generate_filename(company_name: str) -> str:
         """Generate standardized filename from company name"""
         # Convert to lowercase
         filename = company_name.lower()

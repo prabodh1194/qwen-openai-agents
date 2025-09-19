@@ -1,6 +1,8 @@
 """
 CLI module for BSE News Scraper
 """
+import logging
+
 import click
 from typing import Any
 
@@ -72,4 +74,4 @@ def scrape_bse_news_cli(company_name: str, force: bool) -> None:
 
     except Exception as e:
         print(f"Error: {str(e)}")
-        raise click.Abort()
+        logging.exception(e)

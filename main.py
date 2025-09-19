@@ -6,7 +6,6 @@ import click
 
 from cli.bse_news import scrape_bse_news_cli
 from cli.invoke_lambda import invoke_lambda
-from cli.refresh_token import refresh_qwen_token
 from cli.analyze_stocks import analyze_stocks
 
 
@@ -18,7 +17,6 @@ def cli() -> None:
 
 cli.add_command(scrape_bse_news_cli)
 cli.add_command(invoke_lambda)
-cli.add_command(refresh_qwen_token)
 cli.add_command(analyze_stocks)
 
 if __name__ == "__main__":
