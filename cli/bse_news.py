@@ -38,7 +38,9 @@ def scrape_bse_news(company_name: str, force: bool = False) -> dict[str, Any]:
         )
 
         # Track result in DynamoDB (if table name is available)
-        track_scrape_result(company_name, analysis["status"] == "success", table_name)
+        track_scrape_result(
+            company_name, analysis["status"] in {"success", "skipped"}, table_name
+        )
 
         return analysis
 
