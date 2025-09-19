@@ -104,6 +104,15 @@ resource "aws_iam_role_policy" "lambda_policy" {
           "dynamodb:Scan"
         ]
         Resource = aws_dynamodb_table.bse_news_scrape_tracker.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = aws_sqs_queue.stock_names.arn
       }
     ]
   })
@@ -146,4 +155,11 @@ resource "aws_lambda_function_url" "bse_news_analyzer" {
     allow_headers     = ["*"]
     expose_headers    = ["keep-alive", "date"]
   }
+}
+
+# Event Source Mapping for SQS to Lambda
+resource "aws_lambda_event_source_mapping" "stock_names_sqs_trigger" {
+  event_source_arn = aws_sqs_queue.stock_names.arn
+  function_name    = aws_lambda_function.bse_news_analyzer.arn
+  batch_size       = 1
 }

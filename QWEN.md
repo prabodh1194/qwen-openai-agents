@@ -28,6 +28,11 @@ This project is a CLI tool that provides access to the Qwen API through an OpenA
 - **Async/Sync Execution**: Support for both asynchronous and synchronous Lambda invocations
 - **Processing Limits**: Option to limit the number of companies processed in a batch
 
+### SQS Integration
+- **Queue-based Processing**: Send company names to SQS queues for asynchronous processing
+- **Scalable Batch Processing**: Process large numbers of companies through queued messages
+- **Error Handling**: Dead Letter Queue (DLQ) for failed messages
+
 ## Credentials Setup
 
 To use this tool, you need to set up your Qwen API credentials in a specific location:
@@ -82,7 +87,14 @@ Once you've set up your credentials, the tool will automatically load them from 
    python main.py invoke-lambda [--async/--sync] [--limit N] [--quiet]
    ```
 
-3. **Analyze All Stocks for a Date**:
+3. **Send Companies to SQS for Processing**:
+   ```bash
+   python main.py send-to-sqs --queue-url <SQS_QUEUE_URL> "Company A" "Company B"
+   python main.py send-to-sqs --queue-url <SQS_QUEUE_URL> --file companies.txt
+   python main.py send-to-sqs --queue-url <SQS_QUEUE_URL> --force "Company A"
+   ```
+
+4. **Analyze All Stocks for a Date**:
    ```bash
    python main.py analyze-stocks [DATE] [--s3-bucket BUCKET] [--s3-prefix PREFIX] [--local-path PATH]
    ```
