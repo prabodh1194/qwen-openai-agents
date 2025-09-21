@@ -19,7 +19,7 @@ variable "s3_bucket_name" {
 variable "lambda_timeout" {
   description = "Lambda function timeout in seconds"
   type        = number
-  default     = 300
+  default     = 60
 }
 
 variable "lambda_memory_size" {

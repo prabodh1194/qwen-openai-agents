@@ -33,6 +33,9 @@ This project is a CLI tool that provides access to the Qwen API through an OpenA
 - **Scalable Batch Processing**: Process large numbers of companies through queued messages
 - **Error Handling**: Dead Letter Queue (DLQ) for failed messages
 
+### Deployment
+- **tofu**: use **IAC** with opentofu.
+
 ## Credentials Setup
 
 To use this tool, you need to set up your Qwen API credentials in a specific location:

@@ -135,6 +135,7 @@ resource "aws_lambda_function" "bse_news_analyzer" {
       S3_BUCKET_NAME      = var.s3_bucket_name,
       PYTHONPATH          = "/var/task/packages",
       DYNAMODB_TABLE_NAME = aws_dynamodb_table.bse_news_scrape_tracker.name
+      SQS_QUEUE_URL       = aws_sqs_queue.stock_names.url
     }
   }
 

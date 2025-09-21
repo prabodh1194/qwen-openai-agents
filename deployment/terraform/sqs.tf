@@ -21,6 +21,7 @@ resource "aws_sqs_queue" "stock_names" {
   max_message_size          = 256000
   message_retention_seconds = 345600  # 4 days
   receive_wait_time_seconds = 20
+  visibility_timeout_seconds = 60  # 1 minute
   
   # Configure Dead Letter Queue
   redrive_policy = jsonencode({

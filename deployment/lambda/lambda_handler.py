@@ -1,23 +1,28 @@
 """
 AWS Lambda handler for BSE News Analyzer with smart_open integration.
 """
+import json
 from typing import Any
 
 import cli.bse_news
 from services.bse_analysis_service import BSEAnalysisService
 
 
-def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+def lambda_handler(
+    records: dict[str, list[dict[str, Any]]], context: Any
+) -> dict[str, Any]:
     """
     Lambda function handler for analyzing BSE news.
 
     Expected event format:
     {
         "company_name": "Company Name",
-        "output_format": "json"  # Optional: "json" or "text"
         "force": false  # Optional: true or false
     }
     """
+
+    event = json.loads(records["Records"][0]["body"])
+
     # Extract company name from event
     company_name = event.get("company_name")
 
