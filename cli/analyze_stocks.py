@@ -204,6 +204,7 @@ CATEGORIZATION CRITERIA:
 - BUY: Strong positive sentiment (>2) with high confidence OR moderate sentiment with very high confidence
 - SELL: Strong negative sentiment (< -2) OR any sentiment with high risk factors
 - HOLD: Moderate sentiment (-2 to 2) OR low confidence in either direction
+Don't incorporate any confidence related notes in the final analysis text though.
 
 OUTPUT FORMAT:
 Return a JSON object with the following structure:
