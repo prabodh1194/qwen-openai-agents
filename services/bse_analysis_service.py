@@ -107,7 +107,7 @@ def analyze_company(
         }
 
     # Initialize service with S3 credentials (same for both CLI and Lambda)
-    service = BSEAnalysisService("s3://bse-news-analyzer-data/.qwen/oauth_creds.json")
+    service = BSEAnalysisService()
 
     # Perform analysis
     analysis = service.analyze_company(company_name)
@@ -121,14 +121,12 @@ def analyze_company(
 class BSEAnalysisService:
     """Service layer for BSE news analysis operations"""
 
-    def __init__(self, creds_uri: str):
+    def __init__(self) -> None:
         """
         Initialize the service with optional credentials URI.
 
-        Args:
-            creds_uri: Optional URI for credentials (for Lambda with S3)
         """
-        self.qwen = QwenClient(creds_uri=creds_uri)
+        self.qwen = QwenClient()
         self.agent = BSENewsAgent(self.qwen.client, ApprovalMode.AUTO_EDIT)
 
     def analyze_company(self, company_name: str) -> dict[str, Any]:

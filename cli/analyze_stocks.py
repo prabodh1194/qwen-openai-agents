@@ -5,11 +5,12 @@ import json
 from datetime import datetime
 from typing import Dict, List, Any
 
-import click
 import boto3
+import click
 from botocore.exceptions import ClientError
-from tqdm import tqdm
 from smart_open import open
+from tqdm import tqdm
+
 from client.qwen import QwenClient, MODEL
 
 
@@ -20,12 +21,6 @@ from client.qwen import QwenClient, MODEL
 )  # type: ignore[misc]
 @click.option("--s3-prefix", type=str, default="outputs", help="S3 prefix for outputs")  # type: ignore[misc]
 @click.option(
-    "--creds-path",
-    type=str,
-    default="~/.qwen/oauth_creds.json",
-    help="Path to credentials file",
-)  # type: ignore[misc]
-@click.option(
     "--force-recompute",
     is_flag=True,
     help="Force recompute even if final analysis exists",
@@ -34,7 +29,6 @@ def analyze_stocks(
     date_str: str,
     s3_bucket: str,
     s3_prefix: str,
-    creds_path: str,
     force_recompute: bool,
 ) -> None:
     """Analyze all stock analyses for a given date and categorize as buy/hold/sell using LLM."""
@@ -82,7 +76,7 @@ def analyze_stocks(
         )
 
         # Perform LLM-based analysis
-        portfolio_analysis = _perform_llm_analysis(filtered_analyses, creds_path)
+        portfolio_analysis = _perform_llm_analysis(filtered_analyses)
 
         # Add metadata to the portfolio analysis
         portfolio_analysis["analysis_date"] = date_str
@@ -164,11 +158,11 @@ def _save_s3_analysis(
         click.echo(f"Error saving S3 analysis: {str(e)}", err=True)
 
 
-def _perform_llm_analysis(analyses: List[Dict], creds_path: str) -> Dict[str, Any]:
+def _perform_llm_analysis(analyses: List[Dict]) -> Dict[str, Any]:
     """Perform LLM-based analysis of all stock analyses."""
     try:
         # Initialize Qwen client
-        qwen = QwenClient(creds_path)
+        qwen = QwenClient()
         client = qwen.client
 
         # Prepare the data for LLM analysis
