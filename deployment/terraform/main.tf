@@ -137,6 +137,7 @@ resource "aws_lambda_function" "bse_news_analyzer" {
       DYNAMODB_TABLE_NAME = aws_dynamodb_table.bse_news_scrape_tracker.name
       SQS_QUEUE_URL       = aws_sqs_queue.stock_names.url
       OPENAI_BASE_URL     = "https://portal.qwen.ai/v1"
+      MODEL               = "deepseek-chat"
       OPENAI_API_KEY      = ""
     }
   }

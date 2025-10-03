@@ -1,7 +1,9 @@
 # qwen_client.py
+import os
+
 from openai import OpenAI
 
-MODEL = "qwen3-coder-plus"
+MODEL = os.getenv("MODEL", "qwen3-coder-plus")
 
 
 class QwenClient:
