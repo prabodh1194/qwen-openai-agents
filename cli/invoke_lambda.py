@@ -3,31 +3,19 @@ CLI module for sending company names to AWS SQS queue for BSE news analysis
 """
 import json
 import os
-from pathlib import Path
 
 import boto3
 import click
+from smart_open import open
 
 
 @click.command()  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
-    "--async/--sync",
-    "async_mode",
-    default=True,
-    help="Run invocations asynchronously or synchronously",
-)
 @click.option("--limit", type=int, help="Limit the number of companies to process")  # type: ignore[misc]
-@click.option("--quiet", "-q", is_flag=True, help="Suppress verbose output")  # type: ignore[misc]
-def invoke_lambda(async_mode: bool, limit: int, quiet: bool) -> None:
+def invoke_lambda(limit: int | None) -> None:
     """Send company names to AWS SQS queue for BSE news analysis."""
     try:
         # Read company names from stocks file
-        stocks_file = Path(__file__).parent.parent / "stocks" / "stocks_100"
-        if not stocks_file.exists():
-            click.echo(f"Error: Stocks file not found at {stocks_file}", err=True)
-            raise click.Abort()
-
-        with open(stocks_file, "r") as f:
+        with open("s3://bse-news-analyzer-data/stocks/stocks_100", "r") as f:
             company_names = [line.strip() for line in f.readlines() if line.strip()]
 
         # Apply limit if specified
@@ -35,16 +23,14 @@ def invoke_lambda(async_mode: bool, limit: int, quiet: bool) -> None:
             company_names = company_names[:limit]
 
         # Verbose is the default behavior, only suppress if quiet flag is set
-        verbose = not quiet
 
         click.echo(f"Processing {len(company_names)} companies...")
 
         # Print company names unless quiet mode is enabled
-        if verbose:
-            click.echo("Companies to process:")
-            for i, company in enumerate(company_names, 1):
-                click.echo(f"  {i}. {company}")
-            click.echo("")
+        click.echo("Companies to process:")
+        for i, company in enumerate(company_names, 1):
+            click.echo(f"  {i}. {company}")
+        click.echo("")
 
         # Get SQS queue URL from environment variable
         queue_url = os.environ.get("SQS_QUEUE_URL")
@@ -68,8 +54,7 @@ def invoke_lambda(async_mode: bool, limit: int, quiet: bool) -> None:
                     MessageBody=json.dumps({"company_name": company_name}),
                 )
                 sent_count += 1
-                if verbose:
-                    click.echo(f"  Sent '{company_name}' to SQS queue")
+                click.echo(f"  Sent '{company_name}' to SQS queue")
             except Exception as e:
                 failed_count += 1
                 click.echo(
