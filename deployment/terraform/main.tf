@@ -167,3 +167,98 @@ resource "aws_lambda_event_source_mapping" "stock_names_sqs_trigger" {
   function_name    = aws_lambda_function.bse_news_analyzer.arn
   batch_size       = 1
 }
+
+# IAM Role for Batch Invoke Lambda
+resource "aws_iam_role" "batch_invoke_lambda_role" {
+  name = "${var.batch_invoke_lambda_function_name}-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# IAM Policy for Batch Invoke Lambda
+resource "aws_iam_role_policy" "batch_invoke_lambda_policy" {
+  name = "${var.batch_invoke_lambda_function_name}-policy"
+  role = aws_iam_role.batch_invoke_lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.data_bucket.arn,
+          "${aws_s3_bucket.data_bucket.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage"
+        ]
+        Resource = aws_sqs_queue.stock_names.arn
+      }
+    ]
+  })
+}
+
+# Lambda Function - Batch Invoke BSE News Analyzer
+resource "aws_lambda_function" "batch_invoke_bse_news_analyzer" {
+  function_name = var.batch_invoke_lambda_function_name
+  role          = aws_iam_role.batch_invoke_lambda_role.arn
+  handler       = "invoke_batch_handler.lambda_handler"
+  runtime       = "python3.13"
+  timeout       = var.batch_invoke_lambda_timeout
+  memory_size   = var.batch_invoke_lambda_memory_size
+
+  filename         = "${path.module}/../../lambda-package.zip"
+  source_code_hash = filebase64sha256("${path.module}/../../lambda-package.zip")
+
+  environment {
+    variables = {
+      SQS_QUEUE_URL = aws_sqs_queue.stock_names.url
+      AWS_REGION    = var.aws_region
+    }
+  }
+
+  depends_on = [
+    aws_iam_role_policy.batch_invoke_lambda_policy
+  ]
+}
+
+# Lambda Function URL for Batch Invoke
+resource "aws_lambda_function_url" "batch_invoke_bse_news_analyzer" {
+  function_name      = aws_lambda_function.batch_invoke_bse_news_analyzer.function_name
+  authorization_type = "NONE"
+
+  cors {
+    allow_credentials = true
+    allow_origins     = ["*"]
+    allow_methods     = ["POST", "GET"]
+    allow_headers     = ["*"]
+    expose_headers    = ["keep-alive", "date"]
+  }
+}

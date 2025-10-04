@@ -32,3 +32,18 @@ output "dynamodb_table_arn" {
   description = "ARN of the DynamoDB table for tracking BSE news scrape results"
   value       = aws_dynamodb_table.bse_news_scrape_tracker.arn
 }
+
+output "batch_invoke_lambda_function_name" {
+  description = "Name of the batch invoke Lambda function"
+  value       = aws_lambda_function.batch_invoke_bse_news_analyzer.function_name
+}
+
+output "batch_invoke_lambda_function_arn" {
+  description = "ARN of the batch invoke Lambda function"
+  value       = aws_lambda_function.batch_invoke_bse_news_analyzer.arn
+}
+
+output "batch_invoke_lambda_function_url" {
+  description = "URL of the batch invoke Lambda function"
+  value       = aws_lambda_function_url.batch_invoke_bse_news_analyzer.function_url
+}
