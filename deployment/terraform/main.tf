@@ -14,16 +14,16 @@ resource "aws_s3_bucket_versioning" "data_bucket" {
 resource "aws_dynamodb_table" "bse_news_scrape_tracker" {
   name         = "${var.lambda_function_name}-tracker"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "company_name"
-  range_key    = "created_at"
+  hash_key     = "pk"
+  range_key    = "sk"
 
   attribute {
-    name = "company_name"
+    name = "pk"
     type = "S"
   }
 
   attribute {
-    name = "created_at"
+    name = "sk"
     type = "S"
   }
 

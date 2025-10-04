@@ -64,6 +64,8 @@ def track_scrape_result(
         # Put item in DynamoDB
         table.put_item(
             Item={
+                "pk": datetime.utcnow().date().isoformat(),
+                "sk": normalized_name,
                 "company_name": normalized_name,
                 "created_at": created_at,
                 "success": success,
