@@ -46,3 +46,7 @@ variable "batch_invoke_lambda_memory_size" {
   default     = 512
 }
 
+variable "openai_api_key" {
+  description = "OpenAI API key"
+  type        = string
+}

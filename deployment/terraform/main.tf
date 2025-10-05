@@ -138,7 +138,7 @@ resource "aws_lambda_function" "bse_news_analyzer" {
       SQS_QUEUE_URL       = aws_sqs_queue.stock_names.url
       OPENAI_BASE_URL     = "https://api.deepseek.com"
       MODEL               = "deepseek-chat"
-      OPENAI_API_KEY      = ""
+      OPENAI_API_KEY      = var.openai_api_key
     }
   }
 
@@ -240,7 +240,7 @@ resource "aws_lambda_function" "batch_invoke_bse_news_analyzer" {
   environment {
     variables = {
       SQS_QUEUE_URL = aws_sqs_queue.stock_names.url
-      AWS_REGION    = var.aws_region
+      PYTHONPATH    = "/var/task/packages"
     }
   }
 
