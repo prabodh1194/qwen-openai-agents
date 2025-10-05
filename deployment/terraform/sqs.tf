@@ -7,7 +7,7 @@ resource "aws_sqs_queue" "stock_names_dlq" {
   max_message_size          = 256000
   message_retention_seconds = 1209600  # 14 days
   receive_wait_time_seconds = 0
-  
+
   tags = {
     Name = "Stock Names Dead Letter Queue"
     Service = "Stock Processing"
@@ -22,13 +22,13 @@ resource "aws_sqs_queue" "stock_names" {
   message_retention_seconds = 345600  # 4 days
   receive_wait_time_seconds = 20
   visibility_timeout_seconds = 60  # 1 minute
-  
+
   # Configure Dead Letter Queue
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.stock_names_dlq.arn
     maxReceiveCount     = 3
   })
-  
+
   tags = {
     Name = "Stock Names Queue"
     Service = "Stock Processing"

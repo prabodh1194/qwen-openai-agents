@@ -262,3 +262,34 @@ resource "aws_lambda_function_url" "batch_invoke_bse_news_analyzer" {
     expose_headers    = ["keep-alive", "date"]
   }
 }
+
+# EventBridge Rule for daily scheduled execution
+resource "aws_cloudwatch_event_rule" "batch_invoke_schedule" {
+  name                = "${var.batch_invoke_lambda_function_name}-schedule"
+  description         = "Triggers the batch invoke Lambda daily at 6 PM IST (12:30 UTC)"
+  schedule_expression = "cron(30 12 * * ? *)"  # 12:30 UTC = 18:00 IST (6 PM IST; IST is UTC+5:30)
+
+  # Enable the rule
+  is_enabled = true
+}
+
+# Permission for EventBridge to invoke the Lambda function
+resource "aws_lambda_permission" "allow_eventbridge" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.batch_invoke_bse_news_analyzer.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.batch_invoke_schedule.arn
+}
+
+# Target for the EventBridge rule
+resource "aws_cloudwatch_event_target" "batch_invoke_target" {
+  rule      = aws_cloudwatch_event_rule.batch_invoke_schedule.name
+  target_id = "BatchInvokeTarget"
+  arn       = aws_lambda_function.batch_invoke_bse_news_analyzer.arn
+
+  # Optional: Send event with default limit
+  input = jsonencode({
+    "limit" = null  # Process all companies by default
+  })
+}

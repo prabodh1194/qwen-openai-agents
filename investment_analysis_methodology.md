@@ -90,8 +90,8 @@ graph TD
 
 **Example Template:**
 ```
-Investment Thesis: [Company Name] presents a compelling opportunity in the [industry] sector due to [key factors]. 
-The company is well-positioned to [growth drivers] while managing [risks]. 
+Investment Thesis: [Company Name] presents a compelling opportunity in the [industry] sector due to [key factors].
+The company is well-positioned to [growth drivers] while managing [risks].
 Recommendation: [Buy/Hold/Sell] with target price of ₹[X] representing [Y]% upside/downside.
 ```
 
@@ -214,14 +214,14 @@ def analyze_revenue_growth(revenue_data):
     """
     years = len(revenue_data)
     cagr = ((revenue_data[-1] / revenue_data[0]) ** (1/(years-1)) - 1) * 100
-    
+
     insights = {
         'cagr': cagr,
         'trend': 'increasing' if cagr > 0 else 'decreasing',
         'volatility': calculate_volatility(revenue_data),
         'acceleration': check_growth_acceleration(revenue_data)
     }
-    
+
     return insights
 ```
 
@@ -273,7 +273,7 @@ def calculate_target_price(current_pe, eps_forecast, target_multiple):
     """
     target_price = eps_forecast * target_multiple
     upside_potential = ((target_price - current_price) / current_price) * 100
-    
+
     return {
         'target_price': target_price,
         'upside_potential': upside_potential,
