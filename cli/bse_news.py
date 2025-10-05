@@ -27,7 +27,6 @@ def scrape_bse_news(company_name: str, force: bool = False) -> dict[str, Any]:
     Returns:
         Analysis results dictionary
     """
-    table_name = "bse-news-analyzer-tracker"
 
     try:
         # Perform analysis using unified function with S3 credentials
@@ -39,15 +38,13 @@ def scrape_bse_news(company_name: str, force: bool = False) -> dict[str, Any]:
 
         # Track result in DynamoDB (if table name is available)
         if analysis["status"] != "skipped":
-            track_scrape_result(
-                company_name, analysis["status"] == "success", table_name
-            )
+            track_scrape_result(company_name, analysis["status"] == "success")
 
         return analysis
 
     except Exception as e:
         # Track failure in DynamoDB (if table name is available)
-        track_scrape_result(company_name, False, table_name)
+        track_scrape_result(company_name, False)
         raise e
 
 
@@ -60,6 +57,7 @@ def scrape_bse_news_cli(company_name: str, force: bool) -> None:
     """Scrape and analyze BSE news for a given company (CLI version)."""
     try:
         print(f"Analyzing BSE news for: {company_name}")
+        track_scrape_result(company_name, False)
 
         # Perform analysis using unified function with S3 credentials
         analysis = scrape_bse_news(company_name, force)

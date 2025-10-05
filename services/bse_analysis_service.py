@@ -23,28 +23,20 @@ def normalize_company_name(company_name: str) -> str:
     return " ".join(company_name.lower().split())
 
 
-def track_scrape_result(
-    company_name: str, success: bool, table_name: str | None = None
-) -> None:
+def track_scrape_result(company_name: str, success: bool) -> None:
     """
     Track the result of a BSE news scrape in DynamoDB.
 
     Args:
         company_name: Name of the company that was analyzed
         success: Whether the analysis was successful
-        table_name: Optional DynamoDB table name (for Lambda environment)
     """
-    # If no table name provided, try to get from environment (Lambda case)
-    if not table_name:
-        table_name = os.environ.get("DYNAMODB_TABLE_NAME")
-
-    # If still no table name, skip tracking (CLI case outside Lambda)
-    if not table_name:
-        return
 
     try:
         import boto3
         from datetime import datetime, timedelta
+
+        table_name = "bse-news-analyzer-tracker"
 
         # Initialize DynamoDB client
         dynamodb = boto3.resource(
@@ -78,9 +70,7 @@ def track_scrape_result(
         pass
 
 
-def analyze_company(
-    company_name: str, s3_bucket: str, force: bool = False
-) -> dict[str, Any]:
+def analyze_company(company_name: str, s3_bucket: str, force: bool = False) -> dict:
     """
     Analyze BSE news for a company.
 
@@ -89,7 +79,6 @@ def analyze_company(
     - Checking if analysis already exists (unless force=True)
     - Performing the analysis
     - Saving results to S3
-    - Tracking results in DynamoDB (when table_name is provided)
 
     Args:
         company_name: Name of the company to analyze
@@ -131,7 +120,7 @@ class BSEAnalysisService:
         self.qwen = QwenClient()
         self.agent = BSENewsAgent(self.qwen.client, ApprovalMode.AUTO_EDIT)
 
-    def analyze_company(self, company_name: str) -> dict[str, Any]:
+    def analyze_company(self, company_name: str) -> dict:
         """
         Analyze BSE news for a given company.
 
@@ -143,7 +132,7 @@ class BSEAnalysisService:
         """
         return self.agent.analyze_company_news(company_name)
 
-    def save_analysis(self, analysis: dict[str, Any], s3_bucket: str) -> str:
+    def save_analysis(self, analysis: dict, s3_bucket: str) -> str:
         """
         Save analysis results to S3 URI.
 
